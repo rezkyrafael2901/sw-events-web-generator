@@ -2,6 +2,5 @@ __pycache__/
 *.pyc
 outputs/
 .env
-.venv/
-venv/
-.DS_Store
+node_modules/
+.vercel/

@@ -1,52 +1,53 @@
 # SW Events Web Generator
 
-Web UI untuk generate synthetic Android `sw_events.zip` fixture buat QA/staging parser test.
+Website generator untuk membuat synthetic Android UsageStats fixture.
 
-## Run lokal
+## Fitur
+
+- Web UI responsive pakai Tailwind CDN
+- Brand profile: Xiaomi, Samsung, OPPO, Infinix, Advan
+- Generate synthetic `events.ndjson` + `manifest.json`
+- Download hasil sebagai `sw_events.zip`
+- Serverless-compatible untuk Vercel: output ZIP dibuat in-memory dan dikirim sebagai base64
+
+## Local run
 
 ```bash
-cd /home/ubuntu/.hermes/cache/documents/sw_events_web_generator
-python -m uvicorn app:app --host 0.0.0.0 --port 7860
+pip install -r requirements.txt
+uvicorn api.index:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Buka:
-
-```text
-http://SERVER_IP:7860
-```
-
-## Output
-
-Setiap generate bikin folder baru di:
-
-```text
-outputs/<job_id>/
-```
-
-Isi:
-
-- `sw_events_<model>_<seed>.zip`
-- `sw_events_<model>_<seed>_report.json`
-- `result.json`
+Buka: http://localhost:8000
 
 ## API
 
-Generate:
-
 ```bash
-curl -X POST http://127.0.0.1:7860/api/generate \
+curl -X POST http://localhost:8000/api/generate \
   -F brand=xiaomi \
-  -F count=22000 \
-  -F days=8.8 \
-  -F seed=86421
+  -F count=1200 \
+  -F days=1 \
+  -F seed=42
 ```
 
-Profiles:
+Response mengandung:
+
+- `filename`: selalu `sw_events`
+- `zip_base64`: ZIP base64 untuk download browser
+- `summary`: device, event_count, sha256, score, top packages/types
+
+## ZIP output
+
+Nama file download browser: `sw_events.zip`
+
+Isi ZIP:
+
+- `events.ndjson`
+- `manifest.json`
+
+## Deploy Vercel
 
 ```bash
-curl http://127.0.0.1:7860/api/profiles
+vercel --prod
 ```
 
-## Catatan
-
-Output adalah synthetic QA fixture, bukan export asli user.
+Synthetic QA fixture only — bukan data user asli.
