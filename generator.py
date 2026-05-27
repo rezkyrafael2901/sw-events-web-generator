@@ -1,22 +1,5 @@
-#!/usr/bin/env python3
-"""
-Realistic Android sw_events QA fixture generator.
-
-Purpose: authorized QA/staging scanner tests. Generated ZIPs mimic Android UsageStats
-shape and behavioral statistics learned from real samples, while companion reports
-record QA provenance. Do not use generated fixtures as real user exports.
-
-Outputs:
-- sw_events_<brand>_<model>_<seed>.zip
-- sw_events_<brand>_<model>_<seed>_report.json
-
-Schema:
-- ZIP entries: events.ndjson, manifest.json
-- Event keys: ts, package, type, optional class
-"""
 from __future__ import annotations
 
-import argparse
 import collections
 import datetime as dt
 import hashlib
@@ -25,7 +8,7 @@ import math
 import random
 import statistics
 import zipfile
-from pathlib import Path
+from io import BytesIO
 from typing import Dict, List, Tuple, Any
 
 EVENT_TYPES = [
@@ -37,8 +20,29 @@ EVENT_TYPES = [
     "KEYGUARD_HIDDEN", "KEYGUARD_SHOWN", "CONFIGURATION_CHANGE",
 ]
 
-# Brand profiles built from observed sw_events samples + coherent Android vendor stacks.
-# Weight = relative package usage share. class may be empty for pseudo/system packages.
+EVENT_WEIGHTS = [
+    ("ACTIVITY_RESUMED", 28.0),
+    ("ACTIVITY_PAUSED", 27.5),
+    ("EVENT_23", 22.0),
+    ("NOTIFICATION_INTERRUPTION", 6.0),
+    ("NOTIFICATION_SEEN", 4.5),
+    ("FOREGROUND_SERVICE_START", 3.2),
+    ("FOREGROUND_SERVICE_STOP", 3.2),
+    ("STANDBY_BUCKET_CHANGED", 2.8),
+    ("USER_INTERACTION", 1.6),
+    ("SCREEN_INTERACTIVE", 0.9),
+    ("SCREEN_NON_INTERACTIVE", 0.8),
+    ("KEYGUARD_HIDDEN", 0.3),
+    ("KEYGUARD_SHOWN", 0.2),
+    ("CONFIGURATION_CHANGE", 0.1),
+]
+
+BASE_HOUR = [
+    0.012, 0.008, 0.007, 0.006, 0.006, 0.009, 0.018, 0.036,
+    0.052, 0.068, 0.072, 0.065, 0.070, 0.064, 0.060, 0.062,
+    0.068, 0.075, 0.080, 0.078, 0.052, 0.042, 0.028, 0.018,
+]
+
 BRAND_PROFILES: Dict[str, Dict[str, Any]] = {
     "samsung": {
         "models": ["samsung SM-A057F", "samsung SM-A155F", "samsung SM-A226B", "samsung SM-A035F", "samsung SM-A105G"],
@@ -118,75 +122,71 @@ BRAND_PROFILES: Dict[str, Dict[str, Any]] = {
             ("com.instagram.android", "com.instagram.mainactivity.InstagramMainActivity", 0.034),
             ("com.google.android.gms", "com.google.android.gms.common.api.GoogleApiActivity", 0.030),
             ("com.ss.android.ugc.trill", "com.ss.android.ugc.aweme.splash.SplashActivity", 0.026),
-            ("com.heytap.market", "com.heytap.market.activity.MainActivity", 0.022),
-            ("com.coloros.gallery3d", "com.coloros.gallery3d.app.Gallery", 0.020),
-            ("com.android.settings", "com.android.settings.Settings", 0.018),
+            ("com.google.android.youtube", "com.google.android.apps.youtube.app.WatchWhileActivity", 0.024),
+            ("com.android.settings", "com.android.settings.Settings", 0.022),
+            ("com.google.android.gm", "com.google.android.gm.ConversationListActivityGmail", 0.019),
             ("id.dana", "id.dana.home.HomeTabActivity", 0.016),
             ("com.gojek.app", "com.gojek.app.HomeActivity", 0.015),
             ("com.shopee.id", "com.shopee.app.ui.home.HomeActivity_", 0.014),
-            ("com.android.vending", "com.android.vending.AssetBrowserActivity", 0.011),
+            ("com.spotify.music", "com.spotify.music.MainActivity", 0.012),
+            ("com.android.vending", "com.android.vending.AssetBrowserActivity", 0.012),
+            ("com.panjoy.android", "", 0.010),
         ],
     },
     "infinix": {
-        "models": ["INFINIX Infinix X6833B", "INFINIX Infinix X669C"],
-        "android_versions": ["13", "14"],
-        "event_count": (40000, 71000),
-        "class_presence": (0.62, 0.82),
+        "models": ["Infinix X6833B", "Infinix X669C", "Infinix X6728B", "Infinix X6886"],
+        "android_versions": ["12", "13", "14"],
+        "event_count": (20000, 65000),
+        "class_presence": (0.62, 0.83),
         "apps": [
-            ("com.transsion.XOSLauncher", "com.transsion.XOSLauncher.Launcher", 0.185),
-            ("com.whatsapp", "com.whatsapp.HomeActivity", 0.150),
+            ("com.whatsapp", "com.whatsapp.HomeActivity", 0.170),
+            ("com.transsion.XOSLauncher", "com.transsion.launcher.Launcher", 0.130),
             ("android", "", 0.055),
-            ("tw.nekomimi.nekogram", "tw.nekomimi.nekogram.ui.LaunchActivity", 0.048),
-            ("org.telegram.messenger", "org.telegram.ui.LaunchActivity", 0.040),
-            ("com.android.chrome", "com.google.android.apps.chrome.Main", 0.039),
-            ("com.instagram.android", "com.instagram.mainactivity.InstagramMainActivity", 0.038),
-            ("com.facebook.lite", "com.facebook.lite.MainActivity", 0.034),
-            ("com.google.android.gms", "com.google.android.gms.common.api.GoogleApiActivity", 0.031),
-            ("com.ss.android.ugc.trill", "com.ss.android.ugc.aweme.splash.SplashActivity", 0.026),
-            ("com.google.android.youtube", "com.google.android.apps.youtube.app.WatchWhileActivity", 0.024),
-            ("com.transsion.phonemaster", "com.transsion.phonemaster.MainActivity", 0.022),
-            ("com.transsion.camera", "com.transsion.camera.CameraActivity", 0.018),
-            ("com.android.settings", "com.android.settings.Settings", 0.017),
-            ("id.dana", "id.dana.home.HomeTabActivity", 0.015),
-            ("com.shopee.id", "com.shopee.app.ui.home.HomeActivity_", 0.014),
+            ("tw.nekomimi.nekogram", "org.telegram.ui.LaunchActivity", 0.060),
+            ("com.android.chrome", "com.google.android.apps.chrome.Main", 0.045),
+            ("com.instagram.android", "com.instagram.mainactivity.InstagramMainActivity", 0.040),
+            ("com.twitter.android", "com.twitter.app.main.MainActivity", 0.035),
+            ("com.google.android.gms", "com.google.android.gms.common.api.GoogleApiActivity", 0.032),
+            ("com.authy.authy", "com.authy.authy.activities.MainActivity", 0.030),
+            ("org.telegram.messenger", "org.telegram.ui.LaunchActivity", 0.028),
+            ("com.google.android.gm", "com.google.android.gm.ConversationListActivityGmail", 0.025),
+            ("com.openai.chatgpt", "com.openai.chatgpt.MainActivity", 0.022),
+            ("com.android.settings", "com.android.settings.Settings", 0.020),
+            ("id.dana", "id.dana.home.HomeTabActivity", 0.016),
+            ("com.gojek.app", "com.gojek.app.HomeActivity", 0.015),
+            ("com.ss.android.ugc.trill", "com.ss.android.ugc.aweme.splash.SplashActivity", 0.014),
+            ("com.shopee.id", "com.shopee.app.ui.home.HomeActivity_", 0.012),
             ("com.android.vending", "com.android.vending.AssetBrowserActivity", 0.011),
+            ("com.binance.dev", "com.binance.dev.SplashActivity", 0.010),
+            ("com.google.android.youtube", "com.google.android.apps.youtube.app.WatchWhileActivity", 0.010),
         ],
     },
     "advan": {
-        "models": ["ADVAN 6781"],
-        "android_versions": ["12", "13"],
-        "event_count": (25000, 45000),
-        "class_presence": (0.60, 0.82),
+        "models": ["Advan G5", "Advan G9 Pro", "Advan i6C"],
+        "android_versions": ["11", "12", "13"],
+        "event_count": (15000, 55000),
+        "class_presence": (0.56, 0.78),
         "apps": [
-            ("com.android.launcher3", "com.android.launcher3.Launcher", 0.160),
-            ("com.android.chrome", "com.google.android.apps.chrome.Main", 0.064),
-            ("com.iMe.android", "com.iMe.android.ui.LaunchActivity", 0.056),
-            ("com.android.vending", "com.android.vending.AssetBrowserActivity", 0.050),
-            ("android", "", 0.052),
-            ("com.facebook.lite", "com.facebook.lite.MainActivity", 0.048),
-            ("com.whatsapp", "com.whatsapp.HomeActivity", 0.046),
-            ("id.dana", "id.dana.home.HomeTabActivity", 0.034),
-            ("org.telegram.messenger", "org.telegram.ui.LaunchActivity", 0.033),
-            ("com.instagram.android", "com.instagram.mainactivity.InstagramMainActivity", 0.030),
-            ("com.google.android.gms", "com.google.android.gms.common.api.GoogleApiActivity", 0.028),
-            ("com.google.android.youtube", "com.google.android.apps.youtube.app.WatchWhileActivity", 0.026),
+            ("com.whatsapp", "com.whatsapp.HomeActivity", 0.180),
+            ("com.advan.launcher", "", 0.110),
+            ("android", "", 0.060),
+            ("com.android.chrome", "com.google.android.apps.chrome.Main", 0.050),
+            ("org.telegram.messenger", "org.telegram.ui.LaunchActivity", 0.042),
+            ("com.instagram.android", "com.instagram.mainactivity.InstagramMainActivity", 0.036),
+            ("com.google.android.gms", "com.google.android.gms.common.api.GoogleApiActivity", 0.030),
+            ("com.ss.android.ugc.trill", "com.ss.android.ugc.aweme.splash.SplashActivity", 0.028),
+            ("com.google.android.youtube", "com.google.android.apps.youtube.app.WatchWhileActivity", 0.024),
             ("com.android.settings", "com.android.settings.Settings", 0.022),
-            ("com.shopee.id", "com.shopee.app.ui.home.HomeActivity_", 0.018),
-            ("com.gojek.app", "com.gojek.app.HomeActivity", 0.015),
+            ("id.dana", "id.dana.home.HomeTabActivity", 0.018),
+            ("com.gojek.app", "com.gojek.app.HomeActivity", 0.016),
+            ("com.shopee.id", "com.shopee.app.ui.home.HomeActivity_", 0.014),
+            ("com.google.android.gm", "com.google.android.gm.ConversationListActivityGmail", 0.012),
+            ("com.android.vending", "com.android.vending.AssetBrowserActivity", 0.011),
+            ("com.spotify.music", "com.spotify.music.MainActivity", 0.010),
+            ("com.facebook.katana", "com.facebook.katana.LoginActivity", 0.010),
         ],
     },
 }
-
-BASE_HOUR = [0.008, 0.004, 0.003, 0.002, 0.002, 0.006, 0.025, 0.045, 0.060, 0.052, 0.044, 0.052,
-             0.070, 0.052, 0.047, 0.049, 0.063, 0.076, 0.095, 0.100, 0.088, 0.065, 0.035, 0.019]
-EVENT_WEIGHTS = [
-    ("ACTIVITY_RESUMED", 0.238), ("ACTIVITY_PAUSED", 0.231), ("EVENT_23", 0.205),
-    ("NOTIFICATION_INTERRUPTION", 0.083), ("NOTIFICATION_SEEN", 0.061),
-    ("FOREGROUND_SERVICE_START", 0.043), ("FOREGROUND_SERVICE_STOP", 0.042),
-    ("STANDBY_BUCKET_CHANGED", 0.042), ("USER_INTERACTION", 0.025),
-    ("SCREEN_INTERACTIVE", 0.011), ("SCREEN_NON_INTERACTIVE", 0.011),
-    ("KEYGUARD_HIDDEN", 0.004), ("KEYGUARD_SHOWN", 0.003), ("CONFIGURATION_CHANGE", 0.001),
-]
 
 
 def norm_weights(items: List[Tuple[str, str, float]]) -> List[Tuple[str, str, float]]:
@@ -252,7 +252,6 @@ def generate_events(brand: str, model: str | None, android_version: str | None, 
         count = rng.randint(lo, hi)
     if days is None:
         days = rng.uniform(7.1, 9.8)
-    # End time in recent-looking profile window, deterministic by seed.
     end = dt.datetime(2026, 5, 26, rng.randint(5, 20), rng.randint(0, 59), rng.randint(0, 59), tzinfo=dt.timezone.utc)
     start = end - dt.timedelta(days=days, minutes=rng.randint(0, 180), seconds=rng.randint(0, 59))
     apps = norm_weights(prof["apps"])
@@ -306,7 +305,6 @@ def generate_events(brand: str, model: str | None, android_version: str | None, 
                         continue
                     ppkg = session_pkg
                     if rng.random() < 0.13:
-                        # Keep vendor/system interleaving coherent with brand.
                         vendor_launcher = packages[1] if len(packages) > 1 else packages[0]
                         ppkg = rng.choices([vendor_launcher, "android", "com.google.android.gms", "com.android.settings"], weights=[0.46, 0.30, 0.17, 0.07], k=1)[0]
                     if i == 0 and rng.random() < 0.70:
@@ -386,7 +384,6 @@ def analyze_rows(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def score_metrics(metrics: Dict[str, Any]) -> Dict[str, Any]:
-    """Heuristic realism score based on observed training ranges."""
     score = 100
     reasons = []
     n = metrics["event_count"]
@@ -417,55 +414,34 @@ def score_metrics(metrics: Dict[str, Any]) -> Dict[str, Any]:
     return {"score": max(0, score), "reasons": reasons or ["all heuristic checks inside observed QA range"]}
 
 
-def write_fixture(rows: List[Dict[str, Any]], manifest: Dict[str, Any], meta: Dict[str, Any], outdir: Path) -> Tuple[Path, Path, Dict[str, Any]]:
-    outdir.mkdir(parents=True, exist_ok=True)
-    safe_model = manifest["device_model"].lower().replace(" ", "_").replace("/", "-")
-    seed_part = meta.get("seed") if meta.get("seed") is not None else random.randint(1000, 9999)
-    zip_path = outdir / f"sw_events_{safe_model}_{seed_part}.zip"
+def build_zip_bytes(rows: List[Dict[str, Any]], manifest: Dict[str, Any]) -> Tuple[bytes, str]:
+    """Build ZIP in memory and return (bytes, sha256)."""
     ndjson = "\n".join(json.dumps(r, separators=(",", ":"), ensure_ascii=False) for r in rows) + "\n"
-    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+    manifest_str = json.dumps(manifest, separators=(",", ":"), ensure_ascii=False)
+    buf = BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         z.writestr("events.ndjson", ndjson)
-        z.writestr("manifest.json", json.dumps(manifest, separators=(",", ":"), ensure_ascii=False))
+        z.writestr("manifest.json", manifest_str)
+    data = buf.getvalue()
+    sha = hashlib.sha256(data).hexdigest()
+    return data, sha
+
+
+def generate_full(brand: str, model: str | None, android_version: str | None, count: int | None, seed: int | None, days: float | None) -> dict:
+    rows, manifest, meta = generate_events(brand, model, android_version, count, seed, days)
     metrics = analyze_rows(rows)
     quality = score_metrics(metrics)
-    report = {
-        "qa_provenance": "synthetic QA fixture generated for authorized parser/scanner testing; not real user data",
-        "zip": str(zip_path),
-        "zip_size": zip_path.stat().st_size,
-        "zip_sha256": hashlib.sha256(zip_path.read_bytes()).hexdigest(),
+    zip_bytes, sha = build_zip_bytes(rows, manifest)
+    safe_model = manifest["device_model"].lower().replace(" ", "_").replace("/", "-")
+    seed_part = meta.get("seed") if meta.get("seed") is not None else "auto"
+    filename = f"sw_events_{safe_model}_{seed_part}.zip"
+    return {
+        "filename": filename,
+        "zip_bytes": zip_bytes,
+        "zip_size": len(zip_bytes),
+        "zip_sha256": sha,
         "manifest": manifest,
         "meta": meta,
         "metrics": metrics,
         "quality": quality,
     }
-    report_path = zip_path.with_name(zip_path.stem + "_report.json")
-    report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
-    return zip_path, report_path, report
-
-
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--brand", choices=sorted(BRAND_PROFILES), default="samsung")
-    ap.add_argument("--model", default=None)
-    ap.add_argument("--android", default=None)
-    ap.add_argument("--count", type=int, default=None)
-    ap.add_argument("--days", type=float, default=None)
-    ap.add_argument("--seed", type=int, default=None)
-    ap.add_argument("--outdir", default=".")
-    args = ap.parse_args()
-    rows, manifest, meta = generate_events(args.brand, args.model, args.android, args.count, args.seed, args.days)
-    zip_path, report_path, report = write_fixture(rows, manifest, meta, Path(args.outdir))
-    print(json.dumps({
-        "zip": str(zip_path),
-        "report": str(report_path),
-        "device_model": manifest["device_model"],
-        "event_count": manifest["event_count"],
-        "window_start": manifest["window_start"],
-        "window_end": manifest["window_end"],
-        "score": report["quality"]["score"],
-        "sha256": report["zip_sha256"],
-    }, indent=2, ensure_ascii=False))
-
-
-if __name__ == "__main__":
-    main()
