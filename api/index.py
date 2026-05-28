@@ -13,7 +13,7 @@ EW = [
     ("ACTIVITY_RESUMED",28),("ACTIVITY_PAUSED",27.5),("EVENT_23",22),
     ("NOTIFICATION_INTERRUPTION",6),("NOTIFICATION_SEEN",4.5),
     ("FOREGROUND_SERVICE_START",3.2),("FOREGROUND_SERVICE_STOP",3.2),
-    ("STANDBY_BUCKET_CHANGED",2.8),("USER_INTERACTION",1.6),
+    ("STANDBY_BUCKET_CHANGED",8),("USER_INTERACTION",1.6),
     ("SCREEN_INTERACTIVE",0.9),("SCREEN_NON_INTERACTIVE",0.8),
     ("KEYGUARD_HIDDEN",0.3),("KEYGUARD_SHOWN",0.2),("CONFIGURATION_CHANGE",0.1)
 ]
@@ -709,14 +709,18 @@ def _gen(brand, model, av, count, seed, days):
                 if i:
                     # Inter-event gap (mostly small for bursts)
                     r = rng.random()
-                    if r < 0.70:
-                        delta = rng.uniform(0.02, 0.95)
-                    elif r < 0.92:
-                        delta = rng.uniform(1, 15)
-                    elif r < 0.98:
-                        delta = rng.uniform(15, 120)
+                    if r < 0.12:
+                        delta = 0  # concurrent event (same timestamp)
+                    elif r < 0.50:
+                        delta = rng.uniform(0.02, 0.8)
+                    elif r < 0.72:
+                        delta = rng.uniform(1, 10)
+                    elif r < 0.88:
+                        delta = rng.uniform(10, 60)
+                    elif r < 0.96:
+                        delta = rng.uniform(60, 600)
                     else:
-                        delta = rng.uniform(120, 600)
+                        delta = rng.uniform(600, 2400)
                     cur += dt.timedelta(seconds=delta, milliseconds=rng.randint(0, 25))
 
                 if not (start <= cur <= end):
