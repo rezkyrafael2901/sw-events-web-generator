@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse
 app = FastAPI(title="SW Events Generator")
 
 # Embedded HTML for Vercel serverless compatibility
-INDEX_HTML = '<!doctype html>\n<html lang="id">\n<head>\n<meta charset="utf-8"/>\n<meta name="viewport" content="width=device-width,initial-scale=1"/>\n<title>SW Events Generator — Synthetic Android UsageStats</title>\n<script src="https://cdn.tailwindcss.com"></script>\n<link rel="icon" href="data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><text y=\'.9em\' font-size=\'90\'>⚡</text></svg>"/>\n<style>\n*{box-sizing:border-box}\nbody{background:radial-gradient(ellipse at top left,#0f172a,#020617 60%,#000);min-height:100vh}\n.glass{background:rgba(15,23,42,.75);backdrop-filter:blur(20px);border:1px solid rgba(148,163,184,.12)}\n.bar{height:6px;border-radius:3px;background:rgba(52,211,153,.2)}\n.bar>div{height:6px;border-radius:3px;background:#34d399;transition:width .4s}\n.pulse{animation:pulse 2s infinite}\n@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}\n.glow{box-shadow:0 0 30px rgba(52,211,153,.15)}\nselect,input{color-scheme:dark}\n::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}\n</style>\n</head>\n<body class="text-slate-100 antialiased">\n<div class="mx-auto max-w-6xl px-4 py-6 md:py-12">\n\n<!-- HEADER -->\n<div class="mb-8 text-center">\n  <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5">\n    <span class="text-xs font-bold tracking-wide text-emerald-400">SYNTHETIC QA FIXTURE GENERATOR</span>\n    <span class="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">v2.2</span>\n  </div>\n  <h1 class="text-4xl font-black tracking-tight md:text-6xl">⚡ SW Events</h1>\n  <p class="mt-3 text-base text-slate-400">Generate synthetic Android UsageStats fixtures for QA testing</p>\n  <p class="mt-1 text-xs text-slate-600">8 brands • 26 forensic markers • persona system • 300-500 unique packages</p>\n</div>\n\n<!-- MAIN GRID -->\n<div class="grid gap-6 lg:grid-cols-[400px,1fr]">\n\n  <!-- LEFT: CONFIG -->\n  <form id="f" class="glass rounded-2xl p-6 glow">\n    <h2 class="mb-5 flex items-center gap-2 text-lg font-bold">\n      <span>🎯</span> Generator Config\n    </h2>\n\n    <!-- Brand -->\n    <label class="mb-4 block">\n      <span class="mb-1.5 block text-sm font-semibold text-slate-300">Brand</span>\n      <select name="brand" id="brand" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 transition focus:border-emerald-500 focus:outline-none">\n        <option value="samsung">Samsung</option>\n        <option value="xiaomi">Xiaomi / Redmi</option>\n        <option value="oppo">OPPO</option>\n        <option value="realme">realme</option>\n        <option value="vivo">vivo</option>\n        <option value="advan">Advan</option>\n        <option value="tecno">TECNO</option>\n        <option value="infinix">Infinix</option>\n      </select>\n    </label>\n\n    <!-- Model -->\n    <label class="mb-4 block">\n      <span class="mb-1.5 block text-sm font-semibold text-slate-300">Model <span class="font-normal text-slate-600">(optional)</span></span>\n      <input name="model" id="model" placeholder="Random from brand" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 transition focus:border-emerald-500 focus:outline-none"/>\n      <small id="hint" class="mt-1 block text-xs text-slate-600"></small>\n    </label>\n\n    <!-- Android & Seed -->\n    <div class="mb-4 grid grid-cols-2 gap-3">\n      <label class="block">\n        <span class="mb-1.5 block text-sm font-semibold text-slate-300">Android</span>\n        <input name="android" placeholder="auto" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/>\n      </label>\n      <label class="block">\n        <span class="mb-1.5 block text-sm font-semibold text-slate-300">Seed</span>\n        <input name="seed" type="number" min="0" max="999999999" placeholder="random" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/>\n      </label>\n    </div>\n\n    <!-- Event Count & Days -->\n    <div class="mb-4 grid grid-cols-2 gap-3">\n      <label class="block">\n        <span class="mb-1.5 block text-sm font-semibold text-slate-300">Event Count</span>\n        <input name="count" type="number" min="1000" max="150000" placeholder="auto (10K-80K)" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/>\n      </label>\n      <label class="block">\n        <span class="mb-1.5 block text-sm font-semibold text-slate-300">Days</span>\n        <input name="days" type="number" min="1" max="30" step="0.5" placeholder="auto (7-14)" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/>\n      </label>\n    </div>\n\n    <!-- Persona -->\n    <label class="mb-6 block">\n      <span class="mb-1.5 block text-sm font-semibold text-slate-300">User Persona</span>\n      <select name="persona" id="persona" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none">\n        <option value="">🎲 Random</option>\n        <option value="student">🎓 Student — social, games, messaging</option>\n        <option value="professional">💼 Professional — productivity, finance, news</option>\n        <option value="elderly">👴 Elderly — messaging, finance</option>\n        <option value="gamer">🎮 Gamer — games, social, streaming</option>\n        <option value="casual">😊 Casual — balanced mix</option>\n        <option value="influencer">📱 Influencer — social, camera, ecommerce</option>\n        <option value="trader">📈 Trader — crypto, finance, news</option>\n        <option value="homemaker">🏠 Homemaker — ecommerce, messaging, games</option>\n      </select>\n    </label>\n\n    <!-- Generate Button -->\n    <button id="btn" type="submit" class="w-full rounded-lg bg-emerald-500 py-3.5 text-lg font-black text-slate-950 transition hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">\n      🚀 Generate\n    </button>\n    <p class="mt-3 text-center text-xs text-slate-600">Synthetic QA fixture • Not real user data • 26 forensic markers</p>\n  </form>\n\n  <!-- RIGHT: RESULT -->\n  <div class="glass rounded-2xl p-6">\n    <div class="mb-5 flex items-center justify-between">\n      <h2 class="text-lg font-bold">📦 Result</h2>\n      <span id="st" class="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-500">Waiting</span>\n    </div>\n\n    <!-- Empty State -->\n    <div id="empty" class="flex min-h-[450px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-700/50 text-slate-600">\n      <div class="mb-4 text-5xl">📦</div>\n      <p class="text-base font-semibold text-slate-500">Configure & click Generate</p>\n      <p class="mt-2 text-sm text-slate-600">Pilih brand, persona, lalu klik Generate</p>\n    </div>\n\n    <!-- Result State -->\n    <div id="res" class="hidden">\n      <!-- Stats Cards -->\n      <div class="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">\n        <div class="rounded-xl bg-slate-900/80 p-3">\n          <p class="text-[10px] font-medium uppercase tracking-wider text-slate-500">Device</p>\n          <p id="d" class="mt-1 truncate text-sm font-bold text-white"></p>\n        </div>\n        <div class="rounded-xl bg-slate-900/80 p-3">\n          <p class="text-[10px] font-medium uppercase tracking-wider text-slate-500">Events</p>\n          <p id="ec" class="mt-1 text-sm font-bold text-white"></p>\n        </div>\n        <div class="rounded-xl bg-slate-900/80 p-3">\n          <p class="text-[10px] font-medium uppercase tracking-wider text-slate-500">Packages</p>\n          <p id="pk" class="mt-1 text-sm font-bold text-white"></p>\n        </div>\n        <div class="rounded-xl bg-slate-900/80 p-3">\n          <p class="text-[10px] font-medium uppercase tracking-wider text-slate-500">Score</p>\n          <p id="sc" class="mt-1 text-sm font-bold text-emerald-400"></p>\n        </div>\n      </div>\n\n      <!-- File Info -->\n      <div class="mb-4 rounded-xl bg-slate-900/80 p-3 text-xs">\n        <div class="grid grid-cols-2 gap-2">\n          <p><span class="text-slate-500">Window:</span> <span id="w" class="text-slate-300"></span></p>\n          <p><span class="text-slate-500">Size:</span> <span id="sz" class="text-slate-300"></span></p>\n          <p class="col-span-2 break-all"><span class="text-slate-500">SHA256:</span> <code id="sh" class="text-[10px] text-slate-400"></code></p>\n        </div>\n      </div>\n\n      <!-- Download Button -->\n      <button id="dl" class="mb-5 w-full rounded-lg bg-emerald-500 py-3 text-base font-black text-slate-950 transition hover:bg-emerald-400 active:scale-[0.98]">\n        ⬇️ Download sw_events.zip\n      </button>\n\n      <!-- Charts -->\n      <div class="grid gap-4 md:grid-cols-2">\n        <div class="rounded-xl bg-slate-900/80 p-4">\n          <h3 class="mb-3 text-xs font-bold uppercase tracking-wide text-emerald-500">📊 Top Packages</h3>\n          <ol id="tp" class="space-y-2 text-xs"></ol>\n        </div>\n        <div class="rounded-xl bg-slate-900/80 p-4">\n          <h3 class="mb-3 text-xs font-bold uppercase tracking-wide text-emerald-500">📋 Event Types</h3>\n          <ol id="et" class="space-y-2 text-xs"></ol>\n        </div>\n      </div>\n    </div>\n  </div>\n\n</div>\n\n<!-- FOOTER -->\n<div class="mt-8 text-center text-xs text-slate-700">\n  <p>SW Events Generator v2.2 • 8 brands • Persona system • Forensic-grade synthetic data</p>\n  <p class="mt-1">Built for QA testing • Not real user data</p>\n</div>\n\n</div>\n\n<script>\nconst $ = id => document.getElementById(id);\nlet blob = null, profiles = null;\n\n// Load profiles\nasync function loadProfiles() {\n  try {\n    const r = await fetch(\'/api/profiles\');\n    if (!r.ok) throw new Error(r.statusText);\n    profiles = await r.json();\n    updateHint();\n  } catch (e) {\n    console.warn(\'Failed to load profiles:\', e);\n  }\n}\n\nfunction updateHint() {\n  const b = $(\'brand\').value;\n  if (!profiles || !profiles[b]) return;\n  const p = profiles[b];\n  const models = p.models ? p.models.slice(0, 4).join(\', \') : \'N/A\';\n  const range = p.event_count_range\n    ? p.event_count_range[0].toLocaleString() + \'–\' + p.event_count_range[1].toLocaleString()\n    : \'N/A\';\n  $(\'hint\').textContent = \'Models: \' + models + \' • Events: \' + range;\n}\n\nfunction barrows(list) {\n  if (!list || !list.length) return \'\';\n  const max = list[0][1];\n  return list.map(([name, count]) => {\n    const pct = Math.min(Math.round(count / max * 100), 100);\n    return \'<li class="flex items-center gap-2">\' +\n      \'<span class="w-16 text-right tabular-nums text-slate-500">\' + Number(count).toLocaleString() + \'</span>\' +\n      \'<div class="flex-1 bar"><div style="width:\' + pct + \'%"></div></div>\' +\n      \'<span class="flex-1 truncate text-slate-400">\' + name + \'</span></li>\';\n  }).join(\'\');\n}\n\n// Brand change\n$(\'brand\').addEventListener(\'change\', updateHint);\n\n// Download\n$(\'dl\').addEventListener(\'click\', () => {\n  if (!blob) return;\n  const url = URL.createObjectURL(blob);\n  const a = document.createElement(\'a\');\n  a.href = url;\n  a.download = \'sw_events.zip\';\n  document.body.appendChild(a);\n  a.click();\n  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 200);\n});\n\n// Generate\n$(\'f\').addEventListener(\'submit\', async e => {\n  e.preventDefault();\n  const btn = $(\'btn\');\n  btn.disabled = true;\n  btn.textContent = \'⏳ Generating...\';\n  $(\'st\').textContent = \'Working\';\n  $(\'st\').className = \'rounded-full bg-amber-500/20 px-3 py-1 text-xs text-amber-400 pulse\';\n\n  try {\n    const fd = new FormData(e.target);\n    // Remove empty fields\n    for (const [k, v] of fd.entries()) {\n      if (!v || v === \'\') fd.delete(k);\n    }\n\n    const r = await fetch(\'/api/generate\', { method: \'POST\', body: fd });\n    if (!r.ok) {\n      const err = await r.json().catch(() => ({ detail: r.statusText }));\n      throw new Error(err.detail || \'Generation failed\');\n    }\n\n    const d = await r.json();\n    const s = d.summary;\n\n    // Show result\n    $(\'empty\').classList.add(\'hidden\');\n    $(\'res\').classList.remove(\'hidden\');\n\n    $(\'d\').textContent = s.device_model + \' / Android \' + s.android_version;\n    $(\'ec\').textContent = Number(s.event_count).toLocaleString();\n    $(\'pk\').textContent = s.unique_packages ? Number(s.unique_packages).toLocaleString() : \'N/A\';\n    $(\'sc\').textContent = s.score + \'/100\';\n    $(\'w\').textContent = s.window_start + \' → \' + s.window_end;\n    $(\'sh\').textContent = s.sha256;\n    $(\'sz\').textContent = (s.zip_size / 1024).toFixed(1) + \' KB\';\n\n    $(\'tp\').innerHTML = barrows(s.top_packages);\n    $(\'et\').innerHTML = barrows(s.event_types);\n\n    // Decode base64 zip\n    const bin = atob(d.zip_base64);\n    const arr = new Uint8Array(bin.length);\n    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);\n    blob = new Blob([arr], { type: \'application/zip\' });\n\n    $(\'st\').textContent = \'✅ Ready\';\n    $(\'st\').className = \'rounded-full bg-emerald-500/20 px-3 py-1 text-xs text-emerald-400\';\n  } catch (err) {\n    alert(\'Error: \' + err.message);\n    $(\'st\').textContent = \'❌ Error\';\n    $(\'st\').className = \'rounded-full bg-red-500/20 px-3 py-1 text-xs text-red-400\';\n  } finally {\n    btn.disabled = false;\n    btn.textContent = \'🚀 Generate\';\n  }\n});\n\n// Init\nloadProfiles();\n</script>\n</body>\n</html>\n'
+INDEX_HTML = '<!doctype html>\n<html lang="id">\n<head>\n<meta charset="utf-8"/>\n<meta name="viewport" content="width=device-width,initial-scale=1"/>\n<title>SW Events Generator — Synthetic Android UsageStats</title>\n<script src="https://cdn.tailwindcss.com"></script>\n<link rel="icon" href="data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><text y=\'.9em\' font-size=\'90\'>⚡</text></svg>"/>\n<style>\n*{box-sizing:border-box}\nbody{background:radial-gradient(ellipse at top left,#0f172a,#020617 60%,#000);min-height:100vh}\n.glass{background:rgba(15,23,42,.75);backdrop-filter:blur(20px);border:1px solid rgba(148,163,184,.12)}\n.bar{height:6px;border-radius:3px;background:rgba(52,211,153,.2)}\n.bar>div{height:6px;border-radius:3px;background:#34d399;transition:width .4s}\n.pulse{animation:pulse 2s infinite}\n@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}\n.glow{box-shadow:0 0 30px rgba(52,211,153,.15)}\nselect,input{color-scheme:dark}\n::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}\n</style>\n</head>\n<body class="text-slate-100 antialiased">\n<div class="mx-auto max-w-6xl px-4 py-6 md:py-12">\n\n<!-- HEADER -->\n<div class="mb-8 text-center">\n  <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5">\n    <span class="text-xs font-bold tracking-wide text-emerald-400">SYNTHETIC QA FIXTURE GENERATOR</span>\n    <span class="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">v2.2</span>\n  </div>\n  <h1 class="text-4xl font-black tracking-tight md:text-6xl">⚡ SW Events</h1>\n  <p class="mt-3 text-base text-slate-400">Generate synthetic Android UsageStats fixtures for QA testing</p>\n  <p class="mt-1 text-xs text-slate-600">14 brands • 132+ models • 26 forensic markers • persona system • 300-500 unique packages</p>\n</div>\n\n<!-- MAIN GRID -->\n<div class="grid gap-6 lg:grid-cols-[400px,1fr]">\n\n  <!-- LEFT: CONFIG -->\n  <form id="f" class="glass rounded-2xl p-6 glow">\n    <h2 class="mb-5 flex items-center gap-2 text-lg font-bold">\n      <span>🎯</span> Generator Config\n    </h2>\n\n    <!-- Brand -->\n    <label class="mb-4 block">\n      <span class="mb-1.5 block text-sm font-semibold text-slate-300">Brand</span>\n      <select name="brand" id="brand" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 transition focus:border-emerald-500 focus:outline-none">\n        <option value="samsung">Samsung</option>\n        <option value="xiaomi">Xiaomi / Redmi</option>\n        <option value="oppo">OPPO</option>\n        <option value="realme">realme</option>\n        <option value="vivo">vivo</option>\n        <option value="poco">POCO</option>\n        <option value="oneplus">OnePlus</option>\n        <option value="google">Google Pixel</option>\n        <option value="nothing">Nothing</option>\n        <option value="asus">ASUS / ROG</option>\n        <option value="motorola">Motorola</option>\n        <option value="tecno">TECNO</option>\n        <option value="infinix">Infinix</option>\n        <option value="advan">Advan</option>\n      </select>\n    </label>\n\n    <!-- Model -->\n    <label class="mb-4 block">\n      <span class="mb-1.5 block text-sm font-semibold text-slate-300">Model <span class="font-normal text-slate-600">(optional)</span></span>\n      <input name="model" id="model" placeholder="Random from brand" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 transition focus:border-emerald-500 focus:outline-none"/>\n      <small id="hint" class="mt-1 block text-xs text-slate-600"></small>\n    </label>\n\n    <!-- Android & Seed -->\n    <div class="mb-4 grid grid-cols-2 gap-3">\n      <label class="block">\n        <span class="mb-1.5 block text-sm font-semibold text-slate-300">Android</span>\n        <input name="android" placeholder="auto" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/>\n      </label>\n      <label class="block">\n        <span class="mb-1.5 block text-sm font-semibold text-slate-300">Seed</span>\n        <input name="seed" type="number" min="0" max="999999999" placeholder="random" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/>\n      </label>\n    </div>\n\n    <!-- Event Count & Days -->\n    <div class="mb-4 grid grid-cols-2 gap-3">\n      <label class="block">\n        <span class="mb-1.5 block text-sm font-semibold text-slate-300">Event Count</span>\n        <input name="count" type="number" min="1000" max="150000" placeholder="auto (10K-80K)" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/>\n      </label>\n      <label class="block">\n        <span class="mb-1.5 block text-sm font-semibold text-slate-300">Days</span>\n        <input name="days" type="number" min="1" max="30" step="0.5" placeholder="auto (7-14)" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/>\n      </label>\n    </div>\n\n    <!-- Persona -->\n    <label class="mb-6 block">\n      <span class="mb-1.5 block text-sm font-semibold text-slate-300">User Persona</span>\n      <select name="persona" id="persona" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none">\n        <option value="">🎲 Random</option>\n        <option value="student">🎓 Student — social, games, messaging</option>\n        <option value="professional">💼 Professional — productivity, finance, news</option>\n        <option value="elderly">👴 Elderly — messaging, finance</option>\n        <option value="gamer">🎮 Gamer — games, social, streaming</option>\n        <option value="casual">😊 Casual — balanced mix</option>\n        <option value="influencer">📱 Influencer — social, camera, ecommerce</option>\n        <option value="trader">📈 Trader — crypto, finance, news</option>\n        <option value="homemaker">🏠 Homemaker — ecommerce, messaging, games</option>\n      </select>\n    </label>\n\n    <!-- Generate Button -->\n    <button id="btn" type="submit" class="w-full rounded-lg bg-emerald-500 py-3.5 text-lg font-black text-slate-950 transition hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">\n      🚀 Generate\n    </button>\n    <p class="mt-3 text-center text-xs text-slate-600">Synthetic QA fixture • Not real user data • 26 forensic markers</p>\n  </form>\n\n  <!-- RIGHT: RESULT -->\n  <div class="glass rounded-2xl p-6">\n    <div class="mb-5 flex items-center justify-between">\n      <h2 class="text-lg font-bold">📦 Result</h2>\n      <span id="st" class="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-500">Waiting</span>\n    </div>\n\n    <!-- Empty State -->\n    <div id="empty" class="flex min-h-[450px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-700/50 text-slate-600">\n      <div class="mb-4 text-5xl">📦</div>\n      <p class="text-base font-semibold text-slate-500">Configure & click Generate</p>\n      <p class="mt-2 text-sm text-slate-600">Pilih brand, persona, lalu klik Generate</p>\n    </div>\n\n    <!-- Result State -->\n    <div id="res" class="hidden">\n      <!-- Stats Cards -->\n      <div class="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">\n        <div class="rounded-xl bg-slate-900/80 p-3">\n          <p class="text-[10px] font-medium uppercase tracking-wider text-slate-500">Device</p>\n          <p id="d" class="mt-1 truncate text-sm font-bold text-white"></p>\n        </div>\n        <div class="rounded-xl bg-slate-900/80 p-3">\n          <p class="text-[10px] font-medium uppercase tracking-wider text-slate-500">Events</p>\n          <p id="ec" class="mt-1 text-sm font-bold text-white"></p>\n        </div>\n        <div class="rounded-xl bg-slate-900/80 p-3">\n          <p class="text-[10px] font-medium uppercase tracking-wider text-slate-500">Packages</p>\n          <p id="pk" class="mt-1 text-sm font-bold text-white"></p>\n        </div>\n        <div class="rounded-xl bg-slate-900/80 p-3">\n          <p class="text-[10px] font-medium uppercase tracking-wider text-slate-500">Score</p>\n          <p id="sc" class="mt-1 text-sm font-bold text-emerald-400"></p>\n        </div>\n      </div>\n\n      <!-- File Info -->\n      <div class="mb-4 rounded-xl bg-slate-900/80 p-3 text-xs">\n        <div class="grid grid-cols-2 gap-2">\n          <p><span class="text-slate-500">Window:</span> <span id="w" class="text-slate-300"></span></p>\n          <p><span class="text-slate-500">Size:</span> <span id="sz" class="text-slate-300"></span></p>\n          <p class="col-span-2 break-all"><span class="text-slate-500">SHA256:</span> <code id="sh" class="text-[10px] text-slate-400"></code></p>\n        </div>\n      </div>\n\n      <!-- Download Button -->\n      <button id="dl" class="mb-5 w-full rounded-lg bg-emerald-500 py-3 text-base font-black text-slate-950 transition hover:bg-emerald-400 active:scale-[0.98]">\n        ⬇️ Download sw_events.zip\n      </button>\n\n      <!-- Charts -->\n      <div class="grid gap-4 md:grid-cols-2">\n        <div class="rounded-xl bg-slate-900/80 p-4">\n          <h3 class="mb-3 text-xs font-bold uppercase tracking-wide text-emerald-500">📊 Top Packages</h3>\n          <ol id="tp" class="space-y-2 text-xs"></ol>\n        </div>\n        <div class="rounded-xl bg-slate-900/80 p-4">\n          <h3 class="mb-3 text-xs font-bold uppercase tracking-wide text-emerald-500">📋 Event Types</h3>\n          <ol id="et" class="space-y-2 text-xs"></ol>\n        </div>\n      </div>\n    </div>\n  </div>\n\n</div>\n\n<!-- FOOTER -->\n<div class="mt-8 text-center text-xs text-slate-700">\n  <p>SW Events Generator v2.3 • 14 brands • 132+ models • Persona system • Forensic-grade synthetic data</p>\n  <p class="mt-1">Built for QA testing • Not real user data</p>\n</div>\n\n</div>\n\n<script>\nconst $ = id => document.getElementById(id);\nlet blob = null, profiles = null;\n\n// Load profiles\nasync function loadProfiles() {\n  try {\n    const r = await fetch(\'/api/profiles\');\n    if (!r.ok) throw new Error(r.statusText);\n    profiles = await r.json();\n    updateHint();\n  } catch (e) {\n    console.warn(\'Failed to load profiles:\', e);\n  }\n}\n\nfunction updateHint() {\n  const b = $(\'brand\').value;\n  if (!profiles || !profiles[b]) return;\n  const p = profiles[b];\n  const models = p.models ? p.models.slice(0, 4).join(\', \') : \'N/A\';\n  const range = p.event_count_range\n    ? p.event_count_range[0].toLocaleString() + \'–\' + p.event_count_range[1].toLocaleString()\n    : \'N/A\';\n  $(\'hint\').textContent = \'Models: \' + models + \' • Events: \' + range;\n}\n\nfunction barrows(list) {\n  if (!list || !list.length) return \'\';\n  const max = list[0][1];\n  return list.map(([name, count]) => {\n    const pct = Math.min(Math.round(count / max * 100), 100);\n    return \'<li class="flex items-center gap-2">\' +\n      \'<span class="w-16 text-right tabular-nums text-slate-500">\' + Number(count).toLocaleString() + \'</span>\' +\n      \'<div class="flex-1 bar"><div style="width:\' + pct + \'%"></div></div>\' +\n      \'<span class="flex-1 truncate text-slate-400">\' + name + \'</span></li>\';\n  }).join(\'\');\n}\n\n// Brand change\n$(\'brand\').addEventListener(\'change\', updateHint);\n\n// Download\n$(\'dl\').addEventListener(\'click\', () => {\n  if (!blob) return;\n  const url = URL.createObjectURL(blob);\n  const a = document.createElement(\'a\');\n  a.href = url;\n  a.download = \'sw_events.zip\';\n  document.body.appendChild(a);\n  a.click();\n  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 200);\n});\n\n// Generate\n$(\'f\').addEventListener(\'submit\', async e => {\n  e.preventDefault();\n  const btn = $(\'btn\');\n  btn.disabled = true;\n  btn.textContent = \'⏳ Generating...\';\n  $(\'st\').textContent = \'Working\';\n  $(\'st\').className = \'rounded-full bg-amber-500/20 px-3 py-1 text-xs text-amber-400 pulse\';\n\n  try {\n    const fd = new FormData(e.target);\n    // Remove empty fields\n    for (const [k, v] of fd.entries()) {\n      if (!v || v === \'\') fd.delete(k);\n    }\n\n    const r = await fetch(\'/api/generate\', { method: \'POST\', body: fd });\n    if (!r.ok) {\n      const err = await r.json().catch(() => ({ detail: r.statusText }));\n      throw new Error(err.detail || \'Generation failed\');\n    }\n\n    const d = await r.json();\n    const s = d.summary;\n\n    // Show result\n    $(\'empty\').classList.add(\'hidden\');\n    $(\'res\').classList.remove(\'hidden\');\n\n    $(\'d\').textContent = s.device_model + \' / Android \' + s.android_version;\n    $(\'ec\').textContent = Number(s.event_count).toLocaleString();\n    $(\'pk\').textContent = s.unique_packages ? Number(s.unique_packages).toLocaleString() : \'N/A\';\n    $(\'sc\').textContent = s.score + \'/100\';\n    $(\'w\').textContent = s.window_start + \' → \' + s.window_end;\n    $(\'sh\').textContent = s.sha256;\n    $(\'sz\').textContent = (s.zip_size / 1024).toFixed(1) + \' KB\';\n\n    $(\'tp\').innerHTML = barrows(s.top_packages);\n    $(\'et\').innerHTML = barrows(s.event_types);\n\n    // Decode base64 zip\n    const bin = atob(d.zip_base64);\n    const arr = new Uint8Array(bin.length);\n    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);\n    blob = new Blob([arr], { type: \'application/zip\' });\n\n    $(\'st\').textContent = \'✅ Ready\';\n    $(\'st\').className = \'rounded-full bg-emerald-500/20 px-3 py-1 text-xs text-emerald-400\';\n  } catch (err) {\n    alert(\'Error: \' + err.message);\n    $(\'st\').textContent = \'❌ Error\';\n    $(\'st\').className = \'rounded-full bg-red-500/20 px-3 py-1 text-xs text-red-400\';\n  } finally {\n    btn.disabled = false;\n    btn.textContent = \'🚀 Generate\';\n  }\n});\n\n// Init\nloadProfiles();\n</script>\n</body>\n</html>\n'
 
 # ── Event type weights ──
 EW = [
@@ -270,6 +270,83 @@ ADVAN_SYSTEM = [
     "com.advan.appstore","com.bubble.umusic",
 ]
 
+ASUS_SYSTEM = [
+    "com.asus.launcher","com.asus.camera","com.asus.gallery","com.asus.filemanager",
+    "com.asus.calculator","com.asus.clock","com.asus.weather","com.asus.fmradio",
+    "com.asus.music","com.asus.video","com.asus.notes","com.asus.browser",
+    "com.asus.compass","com.asus.soundrecorder","com.asus.zenui",
+    "com.asus.mobilemanager","com.asus.task","com.asus.splendid",
+    "com.asus.supernote","com.asus.azs","com.asus.audiowizard",
+    "com.asus.theme","com.asus.email","com.asus.contacts","com.asus.messaging",
+    "com.asus.phone","com.asus.settings","com.asus.systemupdate",
+    "com.asus.custompresetsettings","com.asus.gamecenter",
+]
+
+GOOGLE_SYSTEM = [
+    "com.google.android.apps.nexuslauncher","com.google.android.GoogleCamera",
+    "com.google.android.apps.photos","com.google.android.apps.maps",
+    "com.google.android.gm","com.google.android.calendar","com.google.android.deskclock",
+    "com.google.android.calculator","com.google.android.contacts",
+    "com.google.android.dialer","com.google.android.messaging",
+    "com.google.android.youtube","com.google.android.music",
+    "com.google.android.videos","com.google.android.apps.docs",
+    "com.google.android.apps.turbo","com.google.android.apps.wellbeing",
+    "com.google.android.as","com.google.android.settings.intelligence",
+    "com.google.android.cellbroadcastreceiver","com.google.android.overlay.modules.cellbroadcastservice",
+    "com.google.android.networkstack","com.google.android.providers.media.module",
+    "com.google.android.permissioncontroller","com.google.android.modulemetadata",
+    "com.google.android.printservice.recommendation","com.google.android.syncadapters.calendar",
+    "com.google.android.syncadapters.contacts","com.google.android.tag",
+    "com.google.android.partnersetup","com.google.android.feedback",
+    "com.google.android.backuptransport","com.google.android.configupdater",
+    "com.google.android.webview","com.google.android.trichromelibrary",
+]
+
+ONEPLUS_SYSTEM = [
+    "com.oneplus.launcher","com.oneplus.camera","com.oneplus.gallery",
+    "com.oneplus.filemanager","com.oneplus.calculator","com.oneplus.clock",
+    "com.oneplus.weather","com.oneplus.fmradio","com.oneplus.music",
+    "com.oneplus.video","com.oneplus.notes","com.oneplus.compass",
+    "com.oneplus.soundrecorder","com.oneplus.screenrecorder",
+    "com.oneplus.security","com.oneplus.appupdater","com.oneplus.backuprestore",
+    "com.oneplus.wifiapsettings","com.oneplus.skin","com.oneplus.opswitch",
+    "com.oneplus.simsettings","com.oneplus.cloud","com.oneplus.account",
+    "com.oos.oself","com.oos.oiface","com.oos.ohealth",
+    "com.heytap.cloud","com.heytap.browser",
+]
+
+NOTHING_SYSTEM = [
+    "com.nothing.launcher","com.nothing.camera","com.nothing.gallery",
+    "com.nothing.weather","com.nothing.notes","com.nothing.soundrecorder",
+    "com.nothing.fonts","com.nothing.glyph","com.nothing.glyph.composer",
+    "com.nothing.system","com.nothing.phonefix",
+    "com.android.launcher3","com.android.camera2",
+    "com.google.android.GoogleCamera",
+]
+
+MOTOROLA_SYSTEM = [
+    "com.motorola.launcher3","com.motorola.camera3","com.motorola.gallery",
+    "com.motorola.filemanager","com.motorola.calculator","com.motorola.clock",
+    "com.motorola.weather","com.motorola.fmradio","com.motorola.music",
+    "com.motorola.motocare","com.motorola.actions","com.motorola.bug2",
+    "com.motorola.audio","com.motorola.faceunlock","com.motorola.gestures",
+    "com.motorola.help","com.motorola.hiddenmenu","com.motorola.moto",
+    "com.motorola.motodisplay","com.motorola.setup","com.motorola.targetnotif",
+    "com.motorola.videoplayer","com.motorola.cnw","com.motorola.brnhprovision",
+    "com.motorola.process.system","com.motorola.android.fmradio",
+]
+
+POCO_SYSTEM = [
+    "com.mi.launcher","com.miui.home","com.miui.gallery","com.miui.player",
+    "com.miui.video","com.miui.weather2","com.miui.calculator",
+    "com.miui.fm","com.miui.notes","com.miui.securitycenter",
+    "com.miui.cleanmaster","com.miui.mishare","com.miui.backup",
+    "com.xiaomi.mipicks","com.xiaomi.xmsf","com.xiaomi.finddevice",
+    "com.xiaomi.joyose","com.xiaomi.account","com.xiaomi.shop",
+    "com.xiaomi.smarthome","com.xiaomi.scanner","com.mi.android.globallauncher",
+    "com.miui.aod","com.miui.daemon","com.miui.packageinstaller",
+]
+
 # ── Background services ──
 BG_SERVICES = [
     "com.google.android.gms.policy_sidecar_aps","com.google.android.gms.feedback",
@@ -473,7 +550,7 @@ COMMON_USER_APPS = [
 # ── Brand profiles ──
 BP: Dict[str, Any] = {
     "samsung": {
-        "models": ["samsung SM-A155F","samsung SM-A256B","samsung SM-A356E","samsung SM-A556E","samsung SM-S911B","samsung SM-A165F"],
+        "models": ["samsung SM-A155F","samsung SM-A256B","samsung SM-A356E","samsung SM-A556E","samsung SM-S911B","samsung SM-A165F","samsung SM-A057G","samsung SM-S711B","samsung SM-S921B","samsung SM-S926B","samsung SM-S928B","samsung SM-F741B","samsung SM-F956B","samsung SM-A566B","samsung SM-S931B","samsung SM-S936B","samsung SM-S938B"],
         "av": ["11","12","13","14"], "ec": [20000, 90000], "cp": [0.62, 0.84],
         "system": SAMSUNG_SYSTEM,
         "apps": [
@@ -495,7 +572,7 @@ BP: Dict[str, Any] = {
         ],
     },
     "xiaomi": {
-        "models": ["Xiaomi 24075RP89G","Xiaomi 23127PN0CC","Xiaomi 23053RN02A","Redmi Note 13","Xiaomi 24015RAI8I","POCO X6 Pro"],
+        "models": ["Xiaomi 24075RP89G","Xiaomi 23127PN0CC","Xiaomi 23053RN02A","Redmi Note 13","Xiaomi 24015RAI8I","POCO X6 Pro","Xiaomi 2312DRA50G","Xiaomi 2404ARN4CM","Xiaomi 23129RA5FL","Xiaomi 23124RA7EO","Xiaomi 24069RA21I","Xiaomi 24115RA8EI","Xiaomi 23116PN5BC","Xiaomi 2412DRA50I"],
         "av": ["11","12","13","14"], "ec": [25000, 110000], "cp": [0.58, 0.80],
         "system": XIAOMI_SYSTEM,
         "apps": [
@@ -515,7 +592,7 @@ BP: Dict[str, Any] = {
         ],
     },
     "oppo": {
-        "models": ["OPPO CPH2577","OPPO CPH2387","OPPO CPH2591","OPPO CPH2609","OPPO CPH2589"],
+        "models": ["OPPO CPH2577","OPPO CPH2387","OPPO CPH2591","OPPO CPH2609","OPPO CPH2589","OPPO CPH2565","OPPO CPH2481","OPPO CPH2531","OPPO CPH2613","OPPO CPH2645","OPPO CPH2495","OPPO CPH2553","OPPO CPH2669","OPPO CPH2683"],
         "av": ["11","12","13","14"], "ec": [20000, 85000], "cp": [0.60, 0.84],
         "system": OPPO_SYSTEM,
         "apps": [
@@ -532,7 +609,7 @@ BP: Dict[str, Any] = {
         ],
     },
     "infinix": {
-        "models": ["Infinix X6833B","Infinix X669C","Infinix X6728B","Infinix X6886"],
+        "models": ["Infinix X6833B","Infinix X669C","Infinix X6728B","Infinix X6886","Infinix X6725B","Infinix X6720","Infinix X6850","Infinix X6851","Infinix X6838","Infinix X6835B","Infinix X6962"],
         "av": ["12","13","14"], "ec": [25000, 70000], "cp": [0.62, 0.83],
         "system": INFINIX_SYSTEM,
         "apps": [
@@ -548,7 +625,7 @@ BP: Dict[str, Any] = {
         ],
     },
     "vivo": {
-        "models": ["vivo V2322","vivo V2227","vivo V2058","vivo V2348","vivo V2351"],
+        "models": ["vivo V2322","vivo V2227","vivo V2058","vivo V2348","vivo V2351","vivo V2239","vivo V2304","vivo V2318","vivo V2354","vivo V2358","vivo V2405","vivo V2327","vivo V2339","vivo V2350","vivo V2352","vivo V2416","vivo V2422"],
         "av": ["12","13","14","15"], "ec": [25000, 90000], "cp": [0.60, 0.82],
         "system": VIVO_SYSTEM,
         "apps": [
@@ -564,7 +641,7 @@ BP: Dict[str, Any] = {
         ],
     },
     "realme": {
-        "models": ["realme RMX5388","realme RMX3771","realme RMX3700","realme RMX3870"],
+        "models": ["realme RMX5388","realme RMX3771","realme RMX3700","realme RMX3870","realme RMX3840","realme RMX3868","realme RMX3939","realme RMX3987","realme RMX3615","realme RMX3765","realme RMX3913","realme RMX3800","realme RMX5000"],
         "av": ["10","11","12","13","14","15"], "ec": [20000, 95000], "cp": [0.60, 0.83],
         "system": OPPO_SYSTEM,
         "apps": [
@@ -581,7 +658,7 @@ BP: Dict[str, Any] = {
         ],
     },
     "advan": {
-        "models": ["Advan Tab VX","Advan G9 Pro Max"],
+        "models": ["Advan Tab VX","Advan G9 Pro Max","Advan G5","Advan Nasa Plus","Advan Sketsa 2","Advan Nasa Pro"],
         "av": ["11","12","13"], "ec": [15000,60000], "cp": [0.56,0.78],
         "system": ADVAN_SYSTEM,
         "apps": [
@@ -596,7 +673,7 @@ BP: Dict[str, Any] = {
         ],
     },
     "tecno": {
-        "models": ["TECNO TECNO AD8","TECNO SPARK 10","TECNO SPARK 20","TECNO TECNO KG7"],
+        "models": ["TECNO TECNO AD8","TECNO SPARK 10","TECNO SPARK 20","TECNO TECNO KG7","TECNO BG7","TECNO CK9n","TECNO CH9","TECNO CL8","TECNO AE10","TECNO LI9","TECNO AM8","TECNO BJ8"],
         "av": ["12","13","14","15"], "ec": [20000,75000], "cp": [0.60,0.82],
         "system": INFINIX_SYSTEM,
         "apps": [
@@ -608,6 +685,98 @@ BP: Dict[str, Any] = {
             ("id.dana","id.dana.MainActivity",1.5),("com.gojek.app","com.gojek.app.SplashActivity",1.4),("com.shopee.id","com.shopee.id.ui.activity.HomeActivity",1.3),
             ("com.binance.dev","com.binance.dev.SplashActivity",1.2),("com.google.android.youtube","com.google.android.youtube.HomeActivity",1),
             ("com.android.vending","com.android.vending.AssetBrowserActivity",0.8),("com.facebook.lite","com.facebook.lite.MainActivity",0.5),
+        ],
+    },
+    "asus": {
+        "models": ["ASUS_AI2401","ASUS_AI2501","ASUS_A2302"],
+        "av": ["13","14","15"], "ec": [20000, 70000], "cp": [0.60, 0.82],
+        "system": ASUS_SYSTEM,
+        "apps": [
+            ("com.whatsapp","com.whatsapp.MainWhatsAppActivity",18),("com.asus.launcher","com.asus.launcher.Launcher",12),("android","android.app.Activity",5.0),
+            ("com.google.android.gms","com.google.android.gms.GOOGLE_PLAY_SERVICES",4.5),("org.telegram.messenger","org.telegram.messenger.DefaultIcon",4.0),
+            ("com.android.chrome","com.google.android.apps.chrome.Main",3.8),("com.instagram.android","com.instagram.android.MainTabActivity",3.5),
+            ("com.ss.android.ugc.trill","com.ss.android.ugc.trill.MainActivity",3.0),("com.google.android.youtube","com.google.android.youtube.HomeActivity",2.8),
+            ("com.asus.zenui","com.asus.zenui.HomeActivity",2.5),("com.android.settings","com.android.settings.Settings",2.0),
+            ("com.google.android.gm","com.google.android.gm.ConversationListActivityGmail",1.8),("com.facebook.katana","com.facebook.katana.LoginActivity",1.5),
+            ("com.spotify.music","com.spotify.music.MainActivity",1.2),("com.android.vending","com.android.vending.AssetBrowserActivity",1.0),
+            ("com.binance.dev","com.binance.dev.SplashActivity",0.5),("com.openai.chatgpt","com.openai.chatgpt.MainActivity",0.3),
+        ],
+    },
+    "google": {
+        "models": ["Pixel 8","Pixel 8 Pro","Pixel 8a","Pixel 9","Pixel 9 Pro","Pixel 9a","Pixel 7a"],
+        "av": ["13","14","15"], "ec": [15000, 60000], "cp": [0.65, 0.85],
+        "system": GOOGLE_SYSTEM,
+        "apps": [
+            ("com.whatsapp","com.whatsapp.MainWhatsAppActivity",18),("com.google.android.apps.nexuslauncher","com.google.android.apps.nexuslauncher.NexusLauncherActivity",14),
+            ("android","android.app.Activity",5.5),("com.google.android.gms","com.google.android.gms.GOOGLE_PLAY_SERVICES",5.0),
+            ("com.google.android.GoogleCamera","com.google.android.camera.CameraActivity",4.0),("com.android.chrome","com.google.android.apps.chrome.Main",3.8),
+            ("com.instagram.android","com.instagram.android.MainTabActivity",3.2),("com.google.android.youtube","com.google.android.youtube.HomeActivity",3.0),
+            ("org.telegram.messenger","org.telegram.messenger.DefaultIcon",2.8),("com.google.android.apps.photos","com.google.android.apps.photos.home.HomeActivity",2.5),
+            ("com.google.android.gm","com.google.android.gm.ConversationListActivityGmail",2.0),("com.google.android.apps.maps","com.google.android.maps.MapsActivity",1.8),
+            ("com.android.settings","com.android.settings.Settings",1.5),("com.google.android.apps.docs","com.google.android.apps.docs.drive.startup.StartupActivity",1.2),
+            ("com.spotify.music","com.spotify.music.MainActivity",1.0),("com.android.vending","com.android.vending.AssetBrowserActivity",1.0),
+            ("com.openai.chatgpt","com.openai.chatgpt.MainActivity",0.5),("com.binance.dev","com.binance.dev.SplashActivity",0.3),
+        ],
+    },
+    "oneplus": {
+        "models": ["OnePlus CPH2609","OnePlus CPH2611","OnePlus CPH2649","OnePlus CPH2703","OnePlus CPH2725"],
+        "av": ["13","14","15"], "ec": [20000, 75000], "cp": [0.62, 0.84],
+        "system": ONEPLUS_SYSTEM,
+        "apps": [
+            ("com.whatsapp","com.whatsapp.MainWhatsAppActivity",19),("com.oneplus.launcher","com.oneplus.launcher.Launcher",13),("android","android.app.Activity",5.0),
+            ("com.google.android.gms","com.google.android.gms.GOOGLE_PLAY_SERVICES",4.2),("org.telegram.messenger","org.telegram.messenger.DefaultIcon",4.0),
+            ("com.android.chrome","com.google.android.apps.chrome.Main",3.8),("com.instagram.android","com.instagram.android.MainTabActivity",3.5),
+            ("com.ss.android.ugc.trill","com.ss.android.ugc.trill.MainActivity",3.0),("com.google.android.youtube","com.google.android.youtube.HomeActivity",2.5),
+            ("com.oneplus.security","com.oneplus.security.MainActivity",2.0),("com.android.settings","com.android.settings.Settings",1.8),
+            ("com.google.android.gm","com.google.android.gm.ConversationListActivityGmail",1.5),("com.spotify.music","com.spotify.music.MainActivity",1.2),
+            ("com.android.vending","com.android.vending.AssetBrowserActivity",1.0),("com.facebook.katana","com.facebook.katana.LoginActivity",0.8),
+            ("com.binance.dev","com.binance.dev.SplashActivity",0.5),("com.openai.chatgpt","com.openai.chatgpt.MainActivity",0.3),
+        ],
+    },
+    "nothing": {
+        "models": ["Nothing A065","Nothing A069","Nothing A063","Nothing A071"],
+        "av": ["13","14","15"], "ec": [15000, 55000], "cp": [0.63, 0.85],
+        "system": NOTHING_SYSTEM,
+        "apps": [
+            ("com.whatsapp","com.whatsapp.MainWhatsAppActivity",18),("com.nothing.launcher","com.nothing.launcher.Launcher",13),("android","android.app.Activity",5.0),
+            ("com.google.android.gms","com.google.android.gms.GOOGLE_PLAY_SERVICES",4.5),("org.telegram.messenger","org.telegram.messenger.DefaultIcon",4.2),
+            ("com.android.chrome","com.google.android.apps.chrome.Main",3.8),("com.instagram.android","com.instagram.android.MainTabActivity",3.5),
+            ("com.ss.android.ugc.trill","com.ss.android.ugc.trill.MainActivity",3.0),("com.google.android.youtube","com.google.android.youtube.HomeActivity",2.8),
+            ("com.nothing.glyph","com.nothing.glyph.GlyphActivity",2.2),("com.android.settings","com.android.settings.Settings",1.8),
+            ("com.google.android.gm","com.google.android.gm.ConversationListActivityGmail",1.5),("com.spotify.music","com.spotify.music.MainActivity",1.2),
+            ("com.android.vending","com.android.vending.AssetBrowserActivity",1.0),("com.twitter.android","com.twitter.android.MainActivity",0.8),
+            ("com.openai.chatgpt","com.openai.chatgpt.MainActivity",0.5),("com.binance.dev","com.binance.dev.SplashActivity",0.3),
+        ],
+    },
+    "motorola": {
+        "models": ["Motorola XT2431-1","Motorola XT2433-1","Motorola XT2409-1","Motorola XT2427-1","Motorola XT2439-1"],
+        "av": ["13","14","15"], "ec": [18000, 65000], "cp": [0.60, 0.82],
+        "system": MOTOROLA_SYSTEM,
+        "apps": [
+            ("com.whatsapp","com.whatsapp.MainWhatsAppActivity",18),("com.motorola.launcher3","com.motorola.launcher3.Launcher",12),("android","android.app.Activity",5.5),
+            ("com.google.android.gms","com.google.android.gms.GOOGLE_PLAY_SERVICES",4.5),("com.android.chrome","com.google.android.apps.chrome.Main",4.0),
+            ("org.telegram.messenger","org.telegram.messenger.DefaultIcon",3.5),("com.instagram.android","com.instagram.android.MainTabActivity",3.2),
+            ("com.ss.android.ugc.trill","com.ss.android.ugc.trill.MainActivity",2.8),("com.google.android.youtube","com.google.android.youtube.HomeActivity",2.5),
+            ("com.motorola.moto","com.motorola.moto.MainActivity",2.2),("com.android.settings","com.android.settings.Settings",2.0),
+            ("com.google.android.gm","com.google.android.gm.ConversationListActivityGmail",1.5),("com.spotify.music","com.spotify.music.MainActivity",1.0),
+            ("com.android.vending","com.android.vending.AssetBrowserActivity",1.0),("com.facebook.katana","com.facebook.katana.LoginActivity",0.8),
+            ("com.openai.chatgpt","com.openai.chatgpt.MainActivity",0.3),("com.binance.dev","com.binance.dev.SplashActivity",0.2),
+        ],
+    },
+    "poco": {
+        "models": ["POCO F6","POCO X7 Pro","POCO M6 Pro","POCO C75","POCO F7"],
+        "av": ["13","14","15"], "ec": [25000, 90000], "cp": [0.60, 0.83],
+        "system": POCO_SYSTEM,
+        "apps": [
+            ("com.whatsapp","com.whatsapp.MainWhatsAppActivity",18),("com.mi.launcher","com.mi.launcher.Launcher",13),("com.miui.home","com.miui.home.launcher.Launcher",7),
+            ("android","android.app.Activity",5.5),("org.telegram.messenger","org.telegram.messenger.DefaultIcon",4.5),
+            ("com.android.chrome","com.google.android.apps.chrome.Main",4.0),("com.google.android.gms","com.google.android.gms.GOOGLE_PLAY_SERVICES",3.8),
+            ("com.instagram.android","com.instagram.android.MainTabActivity",3.2),("com.ss.android.ugc.trill","com.ss.android.ugc.trill.MainActivity",3.0),
+            ("com.google.android.youtube","com.google.android.youtube.HomeActivity",2.8),("com.xiaomi.mipicks","com.xiaomi.mipicks.SplashActivity",2.2),
+            ("com.miui.securitycenter","com.miui.securitycenter.MainActivity",2.0),("com.android.settings","com.android.settings.Settings",1.8),
+            ("com.google.android.gm","com.google.android.gm.ConversationListActivityGmail",1.5),("com.mobile.legends","com.mobile.legends.SplashActivity",1.3),
+            ("com.android.vending","com.android.vending.AssetBrowserActivity",1.0),("com.spotify.music","com.spotify.music.MainActivity",0.8),
+            ("com.binance.dev","com.binance.dev.SplashActivity",0.4),("com.openai.chatgpt","com.openai.chatgpt.MainActivity",0.3),
         ],
     },
 }
