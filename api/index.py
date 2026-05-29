@@ -1374,3 +1374,242 @@ def generate(brand: str = Form(""), model: Optional[str] = Form(None),
         },
         "notice": "Synthetic QA fixture only."
     }
+
+
+# ══════════════════════════════════════════
+#  DETECTOR-COMPATIBLE SCORING (for 90-100 mode)
+# ══════════════════════════════════════════
+
+# Detector marker ranges (synced from sw_events_detector v1.4)
+_DM = {
+    "total_events": (5000, 200000, 3), "unique_packages": (80, 800, 4),
+    "unique_classes": (40, 600, 3), "screen_pct": (0.3, 15.0, 2),
+    "gap_zero_pct": (0.5, 60.0, 5), "gap_sub10ms_pct": (2.0, 60.0, 3),
+    "gap_10ms_1s_pct": (15.0, 75.0, 4), "gap_1s_10s_pct": (5.0, 55.0, 3),
+    "gap_10s_60s_pct": (1.0, 25.0, 2), "gap_1m_10m_pct": (0.0, 15.0, 2),
+    "gap_gt10m_pct": (0.0, 5.0, 2), "hour_entropy": (2.5, 5.5, 4),
+    "events_per_day_cv": (0.05, 3.0, 3), "avg_burst_seq": (1.0, 30.0, 3),
+    "max_burst_seq": (5, 1000, 4), "top5_pkg_pct": (20.0, 90.0, 5),
+    "top20_pkg_pct": (40.0, 98.0, 3), "ms_unique": (700, 1000, 6),
+    "idle_gt1hr_pct": (0.0, 2.0, 2), "gap_p50": (0.001, 5.0, 3),
+    "gap_p90": (1.0, 100.0, 3), "gap_p99": (30.0, 1200.0, 3),
+    "standby_bucket_pct": (1.0, 60.0, 5), "notification_pct": (1.0, 35.0, 5),
+    "activity_pct": (15.0, 80.0, 4), "pkg_entropy": (2.5, 8.0, 4),
+}
+
+def _detector_score(rows, manifest):
+    """Score a generated file against detector rules. Returns (score, details)."""
+    import datetime as _dt
+    import statistics
+    n = len(rows)
+    if n < 100:
+        return 0, {"error": "too few events"}
+
+    ts = sorted(r["ts"] for r in rows)
+    gaps = [(ts[i+1] - ts[i]) / 1000.0 for i in range(len(ts)-1)]
+    gaps = [g for g in gaps if g >= 0]
+    if not gaps:
+        return 0, {"error": "no gaps"}
+
+    from collections import Counter as _C
+    pkg_c = _C(r["package"] for r in rows)
+    typ_c = _C(r["type"] for r in rows)
+    cls_set = set(r.get("class", "") for r in rows if r.get("class"))
+
+    act_pct = (typ_c.get("ACTIVITY_PAUSED", 0) + typ_c.get("ACTIVITY_RESUMED", 0)) / n * 100
+    notif_pct = typ_c.get("NOTIFICATION_SEEN", 0) / n * 100
+    standby_pct = typ_c.get("STANDBY_BUCKET_CHANGED", 0) / n * 100
+    screen_pct = sum(1 for r in rows if "SCREEN" in r["type"].upper()) / n * 100
+    total_gaps = len(gaps)
+
+    def _pct(cond):
+        return sum(1 for g in gaps if cond(g)) / total_gaps * 100
+
+    gs = sorted(gaps)
+    epd_days = [_dt.datetime.fromtimestamp(t/1000, _dt.timezone.utc).strftime('%Y-%m-%d') for t in ts]
+    day_counts = _C(epd_days)
+    dv = list(day_counts.values())
+    epd_cv = (statistics.stdev(dv) / statistics.mean(dv)) if len(dv) > 1 else 0
+
+    hours = [_dt.datetime.fromtimestamp(t/1000, _dt.timezone.utc).hour for t in ts]
+    hc = _C(hours)
+    ht = sum(hc.values())
+    hour_ent = -sum((c/ht) * math.log2(c/ht) for c in hc.values()) if ht else 0
+
+    burst_seqs = []
+    cs = 1
+    for i in range(1, len(ts)):
+        if ts[i] - ts[i-1] < 100:
+            cs += 1
+        else:
+            if cs > 1: burst_seqs.append(cs)
+            cs = 1
+    if cs > 1: burst_seqs.append(cs)
+    avg_burst = statistics.mean(burst_seqs) if burst_seqs else 0
+    max_burst = max(burst_seqs) if burst_seqs else 0
+
+    ms_vals = set()
+    for r in rows:
+        s = str(r["ts"])
+        if len(s) >= 4:
+            ms_vals.add(int(s[-3:]))
+
+    pt = sum(pkg_c.values())
+    pkg_ent = -sum((c/pt) * math.log2(c/pt) for c in pkg_c.values()) if pt else 0
+
+    metrics = {
+        "total_events": n, "unique_packages": len(pkg_c), "unique_classes": len(cls_set),
+        "screen_pct": screen_pct, "gap_zero_pct": _pct(lambda g: g == 0),
+        "gap_sub10ms_pct": _pct(lambda g: 0 < g < 0.01),
+        "gap_10ms_1s_pct": _pct(lambda g: 0.01 <= g < 1),
+        "gap_1s_10s_pct": _pct(lambda g: 1 <= g < 10),
+        "gap_10s_60s_pct": _pct(lambda g: 10 <= g < 60),
+        "gap_1m_10m_pct": _pct(lambda g: 60 <= g < 600),
+        "gap_gt10m_pct": _pct(lambda g: g >= 600),
+        "hour_entropy": hour_ent, "events_per_day_cv": epd_cv,
+        "avg_burst_seq": avg_burst, "max_burst_seq": max_burst,
+        "top5_pkg_pct": sum(c for _, c in pkg_c.most_common(5)) / n * 100,
+        "top20_pkg_pct": sum(c for _, c in pkg_c.most_common(20)) / n * 100,
+        "ms_unique": len(ms_vals), "idle_gt1hr_pct": _pct(lambda g: g > 3600),
+        "gap_p50": gs[len(gs)//2], "gap_p90": gs[int(len(gs)*0.9)],
+        "gap_p99": gs[int(len(gs)*0.99)],
+        "standby_bucket_pct": standby_pct, "notification_pct": notif_pct,
+        "activity_pct": act_pct, "pkg_entropy": pkg_ent,
+    }
+
+    # Score markers
+    score = 100
+    for key, (lo, hi, w) in _DM.items():
+        val = metrics.get(key)
+        if val is not None and not (lo <= val <= hi):
+            score -= w
+
+    # Anomaly: midpoint clustering
+    mid_count = 0
+    for key, (lo, hi, _) in _DM.items():
+        val = metrics.get(key)
+        if val is not None:
+            mid = (lo + hi) / 2
+            spread = (hi - lo) * 0.15
+            if abs(val - mid) < spread:
+                mid_count += 1
+    if mid_count > 18:
+        score -= 15
+    elif mid_count > 14:
+        score -= 5
+
+    # Anomaly: MS unique < 900
+    if metrics["ms_unique"] < 900:
+        score -= 20
+
+    # Anomaly: event type weights match generator
+    gen_weights = {
+        "ACTIVITY_RESUMED": 14, "ACTIVITY_PAUSED": 13, "EVENT_23": 14,
+        "NOTIFICATION_INTERRUPTION": 17, "STANDBY_BUCKET_CHANGED": 17,
+    }
+    match_count = 0
+    for etype, expected in gen_weights.items():
+        actual = typ_c.get(etype, 0) / n * 100 if n > 0 else 0
+        if abs(actual - expected) < 2:
+            match_count += 1
+    if match_count >= 4:
+        score -= 20
+    elif match_count >= 3:
+        score -= 8
+
+    # Anomaly: low package count
+    if len(pkg_c) < 100:
+        score -= 15
+
+    return max(0, score), {
+        "markers_ok": sum(1 for k, (lo, hi, _) in _DM.items() if metrics.get(k) is not None and lo <= metrics[k] <= hi),
+        "markers_total": len(_DM),
+        "midpoint_count": mid_count,
+        "type_match_count": match_count,
+        "ms_unique": metrics["ms_unique"],
+    }
+
+
+@app.post("/api/generate-optimized")
+def generate_optimized(
+    brand: str = Form(""), model: Optional[str] = Form(None),
+    android: Optional[str] = Form(None), count: Optional[str] = Form(None),
+    days: Optional[str] = Form(None), seed: Optional[str] = Form(None),
+    persona: Optional[str] = Form(None)
+):
+    """Generate a file targeting detector score 90-100."""
+    import random as _rnd
+
+    brand = brand.lower().strip()
+    if not brand:
+        brand = _rnd.choice(list(BP.keys()))
+    if brand not in BP:
+        raise HTTPException(400, "Unknown brand")
+
+    def pi(v, lo, hi):
+        if not v or not v.strip(): return None
+        n = int(v.strip())
+        if not lo <= n <= hi: raise HTTPException(400, f"Must be {lo}-{hi}")
+        return n
+
+    def pf(v, lo, hi):
+        if not v or not v.strip(): return None
+        n = float(v.strip())
+        if not lo <= n <= hi: raise HTTPException(400, f"Must be {lo}-{hi}")
+        return n
+
+    best_score = -1
+    best_rows = None
+    best_manifest = None
+    best_details = None
+    max_attempts = 8
+    target_count = pi(count, 1000, 120000)
+    target_days = pf(days, 1, 14)
+    target_persona = (persona or "").strip() or None
+    target_model = (model or "").strip() or None
+    target_android = (android or "").strip() or None
+    base_seed = pi(seed, 0, 999999999)
+
+    for attempt in range(max_attempts):
+        try:
+            use_seed = base_seed if (base_seed is not None and attempt == 0) else _rnd.randint(0, 999999999)
+            rows, manifest = _gen(brand, target_model, target_android, target_count, use_seed, target_days, target_persona)
+            sc, details = _detector_score(rows, manifest)
+
+            if sc > best_score:
+                best_score = sc
+                best_rows = rows
+                best_manifest = manifest
+                best_details = details
+
+            if sc >= 90:
+                break  # Good enough
+        except Exception:
+            continue
+
+    if best_rows is None:
+        raise HTTPException(500, "Failed to generate optimized file")
+
+    m = _analyze(best_rows)
+    internal_score = _score(m)
+    zb, sha = _zip(best_rows, best_manifest)
+
+    return {
+        "filename": "sw_events", "zip_size": len(zb), "zip_sha256": sha,
+        "zip_base64": base64.b64encode(zb).decode(),
+        "summary": {
+            "device_model": best_manifest["device_model"],
+            "android_version": best_manifest["android_version"],
+            "event_count": best_manifest["event_count"],
+            "window_start": best_manifest["window_start"],
+            "window_end": best_manifest["window_end"],
+            "score": internal_score,
+            "detector_score": best_score,
+            "attempts": attempt + 1 if 'attempt' in dir() else max_attempts,
+            "sha256": sha, "zip_size": len(zb),
+            "top_packages": m["top_packages"][:10],
+            "event_types": m["event_types"][:10],
+            "unique_packages": m["unique_packages"],
+        },
+        "notice": "Synthetic QA fixture optimized for detector score 90-100."
+    }
