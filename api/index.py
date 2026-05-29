@@ -1293,7 +1293,7 @@ def _score(m):
 
 def _zip(rows, manifest):
     nd = "\n".join(json.dumps(r, separators=(",", ":"), ensure_ascii=False) for r in rows) + "\n"
-    ms = json.dumps(manifest, separators=(",", ":"), ensure_ascii=False)
+    ms = json.dumps(manifest, indent=2, ensure_ascii=False)
     buf = BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         z.writestr("events.ndjson", nd)
