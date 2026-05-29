@@ -110,6 +110,13 @@ select,input{color-scheme:dark}
       </select>
     </label>
 
+    <!-- Batch Count -->
+    <label class="mb-6 block">
+      <span class="mb-1.5 block text-sm font-semibold text-slate-300">Batch Count</span>
+      <input name="batch" id="batch" type="number" min="1" max="20" value="1" placeholder="1" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/>
+      <small class="mt-1 block text-xs text-slate-600">Generate multiple files at once (1-20)</small>
+    </label>
+
     <!-- Generate Button -->
     <button id="btn" type="submit" class="w-full rounded-lg bg-emerald-500 py-3.5 text-lg font-black text-slate-950 transition hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
       🚀 Generate
@@ -131,7 +138,7 @@ select,input{color-scheme:dark}
       <p class="mt-2 text-sm text-slate-600">Pilih brand, persona, lalu klik Generate</p>
     </div>
 
-    <!-- Result State -->
+    <!-- Result State (Single) -->
     <div id="res" class="hidden">
       <!-- Stats Cards -->
       <div class="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -179,6 +186,17 @@ select,input{color-scheme:dark}
         </div>
       </div>
     </div>
+
+    <!-- Result State (Batch) -->
+    <div id="batch-res" class="hidden">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="text-lg font-bold">📦 Batch Results</h3>
+        <button id="dl-all" class="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-emerald-400">
+          ⬇️ Download All (ZIP)
+        </button>
+      </div>
+      <div id="batch-list" class="space-y-3"></div>
+    </div>
   </div>
 
 </div>
@@ -194,6 +212,7 @@ select,input{color-scheme:dark}
 <script>
 const $ = id => document.getElementById(id);
 let blob = null, profiles = null;
+let batchBlobs = []; // Store multiple blobs for batch mode
 
 // Load profiles
 async function loadProfiles() {
@@ -234,69 +253,175 @@ function barrows(list) {
   }).join('');
 }
 
-// Brand change
-$('brand').addEventListener('change', updateHint);
-
-// Download
-$('dl').addEventListener('click', () => {
-  if (!blob) return;
+function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'sw_events.zip';
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 200);
+}
+
+// Brand change
+$('brand').addEventListener('change', updateHint);
+
+// Single Download
+$('dl').addEventListener('click', () => {
+  if (!blob) return;
+  downloadBlob(blob, 'sw_events.zip');
+});
+
+// Download All (batch)
+$('dl-all').addEventListener('click', async () => {
+  if (batchBlobs.length === 0) return;
+  
+  // If only 1 file, just download it
+  if (batchBlobs.length === 1) {
+    downloadBlob(batchBlobs[0].blob, batchBlobs[0].filename);
+    return;
+  }
+  
+  // Multiple files - create a ZIP containing all ZIPs using JSZip-like approach
+  // Since we can't use external libs easily, we'll download them one by one
+  for (let i = 0; i < batchBlobs.length; i++) {
+    const {blob, filename} = batchBlobs[i];
+    downloadBlob(blob, filename);
+    // Small delay between downloads
+    if (i < batchBlobs.length - 1) {
+      await new Promise(r => setTimeout(r, 300));
+    }
+  }
 });
 
 // Generate
 $('f').addEventListener('submit', async e => {
   e.preventDefault();
   const btn = $('btn');
+  const batchCount = parseInt($('batch').value) || 1;
+  
   btn.disabled = true;
-  btn.textContent = '⏳ Generating...';
-  $('st').textContent = 'Working';
+  $('st').textContent = 'Working...';
   $('st').className = 'rounded-full bg-amber-500/20 px-3 py-1 text-xs text-amber-400 pulse';
+  
+  // Reset
+  batchBlobs = [];
+  blob = null;
 
   try {
-    const fd = new FormData(e.target);
-    // Remove empty fields
-    for (const [k, v] of fd.entries()) {
-      if (!v || v === '') fd.delete(k);
+    if (batchCount === 1) {
+      // Single generation
+      btn.textContent = '⏳ Generating...';
+      const fd = new FormData(e.target);
+      for (const [k, v] of fd.entries()) {
+        if (!v || v === '') fd.delete(k);
+      }
+      fd.delete('batch'); // Don't send batch param for single
+
+      const r = await fetch('/api/generate', { method: 'POST', body: fd });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({ detail: r.statusText }));
+        throw new Error(err.detail || 'Generation failed');
+      }
+
+      const d = await r.json();
+      const s = d.summary;
+
+      // Show single result
+      $('empty').classList.add('hidden');
+      $('batch-res').classList.add('hidden');
+      $('res').classList.remove('hidden');
+
+      $('d').textContent = s.device_model + ' / Android ' + s.android_version;
+      $('ec').textContent = Number(s.event_count).toLocaleString();
+      $('pk').textContent = s.unique_packages ? Number(s.unique_packages).toLocaleString() : 'N/A';
+      $('sc').textContent = s.score + '/100';
+      $('w').textContent = s.window_start + ' → ' + s.window_end;
+      $('sh').textContent = s.sha256;
+      $('sz').textContent = (s.zip_size / 1024).toFixed(1) + ' KB';
+
+      $('tp').innerHTML = barrows(s.top_packages);
+      $('et').innerHTML = barrows(s.event_types);
+
+      const bin = atob(d.zip_base64);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      blob = new Blob([arr], { type: 'application/zip' });
+
+      $('st').textContent = '✅ Ready';
+      $('st').className = 'rounded-full bg-emerald-500/20 px-3 py-1 text-xs text-emerald-400';
+    } else {
+      // Batch generation
+      $('empty').classList.add('hidden');
+      $('res').classList.add('hidden');
+      $('batch-res').classList.remove('hidden');
+      $('batch-list').innerHTML = '';
+      
+      const results = [];
+      
+      for (let i = 0; i < batchCount; i++) {
+        btn.textContent = `⏳ Generating ${i+1}/${batchCount}...`;
+        $('st').textContent = `Working ${i+1}/${batchCount}`;
+        
+        const fd = new FormData(e.target);
+        for (const [k, v] of fd.entries()) {
+          if (!v || v === '') fd.delete(k);
+        }
+        fd.delete('batch');
+        fd.delete('seed'); // Let each get random seed
+        
+        const r = await fetch('/api/generate', { method: 'POST', body: fd });
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({ detail: r.statusText }));
+          throw new Error(`File ${i+1}: ${err.detail || 'Generation failed'}`);
+        }
+
+        const d = await r.json();
+        const s = d.summary;
+        
+        // Decode blob
+        const bin = atob(d.zip_base64);
+        const arr = new Uint8Array(bin.length);
+        for (let j = 0; j < bin.length; j++) arr[j] = bin.charCodeAt(j);
+        const fileBlob = new Blob([arr], { type: 'application/zip' });
+        
+        const filename = `sw_events_${i+1}.zip`;
+        batchBlobs.push({blob: fileBlob, filename, summary: s});
+        
+        // Add to list
+        const item = document.createElement('div');
+        item.className = 'rounded-xl bg-slate-900/80 p-4 flex items-center justify-between';
+        item.innerHTML = `
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold text-white truncate">${s.device_model} / Android ${s.android_version}</p>
+            <p class="text-xs text-slate-400 mt-1">
+              ${Number(s.event_count).toLocaleString()} events • ${s.unique_packages || '?'} pkgs • ${s.score}/100 • ${(s.zip_size/1024).toFixed(0)} KB
+            </p>
+          </div>
+          <button onclick="downloadBatchFile(${i})" class="ml-4 shrink-0 rounded-lg bg-emerald-500/20 px-3 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-500/30">
+            ⬇️
+          </button>
+        `;
+        $('batch-list').appendChild(item);
+      }
+      
+      // Update status
+      const totalSize = batchBlobs.reduce((sum, b) => sum + b.summary.zip_size, 0);
+      const totalEvents = batchBlobs.reduce((sum, b) => sum + b.summary.event_count, 0);
+      $('st').textContent = `✅ ${batchCount} files ready`;
+      $('st').className = 'rounded-full bg-emerald-500/20 px-3 py-1 text-xs text-emerald-400';
+      
+      // Add summary at top
+      const summary = document.createElement('div');
+      summary.className = 'mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4';
+      summary.innerHTML = `
+        <p class="text-sm font-bold text-emerald-400">📊 Batch Summary</p>
+        <p class="text-xs text-slate-300 mt-2">
+          ${batchCount} files • ${totalEvents.toLocaleString()} total events • ${(totalSize/1024).toFixed(0)} KB total
+        </p>
+      `;
+      $('batch-list').prepend(summary);
     }
-
-    const r = await fetch('/api/generate', { method: 'POST', body: fd });
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({ detail: r.statusText }));
-      throw new Error(err.detail || 'Generation failed');
-    }
-
-    const d = await r.json();
-    const s = d.summary;
-
-    // Show result
-    $('empty').classList.add('hidden');
-    $('res').classList.remove('hidden');
-
-    $('d').textContent = s.device_model + ' / Android ' + s.android_version;
-    $('ec').textContent = Number(s.event_count).toLocaleString();
-    $('pk').textContent = s.unique_packages ? Number(s.unique_packages).toLocaleString() : 'N/A';
-    $('sc').textContent = s.score + '/100';
-    $('w').textContent = s.window_start + ' → ' + s.window_end;
-    $('sh').textContent = s.sha256;
-    $('sz').textContent = (s.zip_size / 1024).toFixed(1) + ' KB';
-
-    $('tp').innerHTML = barrows(s.top_packages);
-    $('et').innerHTML = barrows(s.event_types);
-
-    // Decode base64 zip
-    const bin = atob(d.zip_base64);
-    const arr = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-    blob = new Blob([arr], { type: 'application/zip' });
-
-    $('st').textContent = '✅ Ready';
-    $('st').className = 'rounded-full bg-emerald-500/20 px-3 py-1 text-xs text-emerald-400';
   } catch (err) {
     alert('Error: ' + err.message);
     $('st').textContent = '❌ Error';
@@ -306,6 +431,13 @@ $('f').addEventListener('submit', async e => {
     btn.textContent = '🚀 Generate';
   }
 });
+
+// Download individual batch file
+function downloadBatchFile(index) {
+  if (batchBlobs[index]) {
+    downloadBlob(batchBlobs[index].blob, batchBlobs[index].filename);
+  }
+}
 
 // Init
 loadProfiles();
