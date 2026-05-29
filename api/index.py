@@ -1297,7 +1297,7 @@ def _zip(rows, manifest):
     buf = BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         z.writestr("events.ndjson", nd)
-        z.writestr("manifest.json", ms)
+        z.writestr("manifest", ms)
     d = buf.getvalue()
     return d, hashlib.sha256(d).hexdigest()
 
