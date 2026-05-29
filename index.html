@@ -46,6 +46,7 @@ select,input{color-scheme:dark}
     <label class="mb-4 block">
       <span class="mb-1.5 block text-sm font-semibold text-slate-300">Brand</span>
       <select name="brand" id="brand" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 transition focus:border-emerald-500 focus:outline-none">
+        <option value="">🎲 Random Brand</option>
         <option value="samsung">Samsung</option>
         <option value="xiaomi">Xiaomi / Redmi</option>
         <option value="oppo">OPPO</option>
@@ -208,6 +209,10 @@ async function loadProfiles() {
 
 function updateHint() {
   const b = $('brand').value;
+  if (!b) {
+    $('hint').textContent = 'Brand & model will be chosen randomly from 13 brands';
+    return;
+  }
   if (!profiles || !profiles[b]) return;
   const p = profiles[b];
   const models = p.models ? p.models.slice(0, 4).join(', ') : 'N/A';
