@@ -26,7 +26,7 @@ select,input{color-scheme:dark}
 <div class="mb-8 text-center">
   <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5">
     <span class="text-xs font-bold tracking-wide text-emerald-400">SYNTHETIC QA FIXTURE GENERATOR</span>
-    <span class="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">v2.2</span>
+    <span class="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">v2.7</span>
   </div>
   <h1 class="text-4xl font-black tracking-tight md:text-6xl">⚡ SW Events Generator</h1>
   <p class="mt-3 text-base text-slate-400">Generate synthetic Android UsageStats fixtures for QA testing</p>
@@ -115,6 +115,16 @@ select,input{color-scheme:dark}
       <span class="mb-1.5 block text-sm font-semibold text-slate-300">Batch Count</span>
       <input name="batch" id="batch" type="number" min="1" max="20" value="1" placeholder="1" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/>
       <small class="mt-1 block text-xs text-slate-600">Generate multiple files at once (1-20)</small>
+    </label>
+
+    <!-- High Score Mode Toggle -->
+    <label class="mb-6 flex items-center gap-3 cursor-pointer select-none">
+      <input type="checkbox" name="optimized" id="optimized" class="peer hidden"/>
+      <div class="relative h-6 w-11 rounded-full bg-slate-700 transition peer-checked:bg-emerald-500 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-5"></div>
+      <div>
+        <span class="block text-sm font-semibold text-slate-300">🎯 High Score Mode</span>
+        <span class="block text-xs text-slate-500">Target detector score 90-100 (auto-retry)</span>
+      </div>
     </label>
 
     <!-- Generate Button -->
@@ -325,8 +335,12 @@ $('f').addEventListener('submit', async e => {
         if (!v || v === '') fd.delete(k);
       }
       fd.delete('batch'); // Don't send batch param for single
+      fd.delete('optimized'); // Remove checkbox field
+      const isOpt = $('optimized').checked;
+      const endpoint = isOpt ? '/api/generate-optimized' : '/api/generate';
+      if (isOpt) { btn.textContent = '🎯 Optimizing (up to 8 attempts)...'; }
 
-      const r = await fetch('/api/generate', { method: 'POST', body: fd });
+      const r = await fetch(endpoint, { method: 'POST', body: fd });
       if (!r.ok) {
         const err = await r.json().catch(() => ({ detail: r.statusText }));
         throw new Error(err.detail || 'Generation failed');
@@ -375,8 +389,12 @@ $('f').addEventListener('submit', async e => {
         }
         fd.delete('batch');
         fd.delete('seed'); // Let each get random seed
+        fd.delete('optimized');
+        const isOpt = $('optimized').checked;
+        const endpoint = isOpt ? '/api/generate-optimized' : '/api/generate';
+        if (isOpt) btn.textContent = `🎯 Optimize ${i+1}/${batchCount}...`;
         
-        const r = await fetch('/api/generate', { method: 'POST', body: fd });
+        const r = await fetch(endpoint, { method: 'POST', body: fd });
         if (!r.ok) {
           const err = await r.json().catch(() => ({ detail: r.statusText }));
           throw new Error(`File ${i+1}: ${err.detail || 'Generation failed'}`);
