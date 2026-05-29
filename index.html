@@ -1,142 +1,304 @@
-<!doctype html><html lang="id"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>SW Events Generator</title>
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SW Events Generator — Synthetic Android UsageStats</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>"/>
 <style>
-body{background:radial-gradient(ellipse at top left,#0f172a,#020617 60%,#000)}
-.glass{background:rgba(15,23,42,.7);backdrop-filter:blur(20px);border:1px solid rgba(148,163,184,.15)}
-.bar{height:6px;border-radius:3px;background:rgba(52,211,153,.25)}
-.bar>div{height:6px;border-radius:3px;background:#34d399}
+*{box-sizing:border-box}
+body{background:radial-gradient(ellipse at top left,#0f172a,#020617 60%,#000);min-height:100vh}
+.glass{background:rgba(15,23,42,.75);backdrop-filter:blur(20px);border:1px solid rgba(148,163,184,.12)}
+.bar{height:6px;border-radius:3px;background:rgba(52,211,153,.2)}
+.bar>div{height:6px;border-radius:3px;background:#34d399;transition:width .4s}
+.pulse{animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.glow{box-shadow:0 0 30px rgba(52,211,153,.15)}
+select,input{color-scheme:dark}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
 </style>
-</head><body class="min-h-screen text-slate-100 antialiased">
-<div class="mx-auto max-w-5xl px-4 py-8 md:py-14">
+</head>
+<body class="text-slate-100 antialiased">
+<div class="mx-auto max-w-6xl px-4 py-6 md:py-12">
 
-<div class="mb-10 text-center">
-  <span class="mb-4 inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-bold tracking-wide text-emerald-400">SYNTHETIC QA FIXTURE GENERATOR</span>
-  <h1 class="text-4xl font-black tracking-tight md:text-6xl">SW Events</h1>
-  <p class="mt-3 text-lg text-slate-400">Generate synthetic Android UsageStats fixtures for QA testing</p>
+<!-- HEADER -->
+<div class="mb-8 text-center">
+  <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5">
+    <span class="text-xs font-bold tracking-wide text-emerald-400">SYNTHETIC QA FIXTURE GENERATOR</span>
+    <span class="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">v2.2</span>
+  </div>
+  <h1 class="text-4xl font-black tracking-tight md:text-6xl">⚡ SW Events</h1>
+  <p class="mt-3 text-base text-slate-400">Generate synthetic Android UsageStats fixtures for QA testing</p>
+  <p class="mt-1 text-xs text-slate-600">8 brands • 26 forensic markers • persona system • 300-500 unique packages</p>
 </div>
 
-<div class="grid gap-6 lg:grid-cols-[380px,1fr]">
+<!-- MAIN GRID -->
+<div class="grid gap-6 lg:grid-cols-[400px,1fr]">
 
-  <!-- CONFIG -->
-  <form id="f" class="glass rounded-2xl p-6">
-    <h2 class="mb-6 text-lg font-bold">⚡ Generator Config</h2>
+  <!-- LEFT: CONFIG -->
+  <form id="f" class="glass rounded-2xl p-6 glow">
+    <h2 class="mb-5 flex items-center gap-2 text-lg font-bold">
+      <span>🎯</span> Generator Config
+    </h2>
+
+    <!-- Brand -->
     <label class="mb-4 block">
       <span class="mb-1.5 block text-sm font-semibold text-slate-300">Brand</span>
-      <select name="brand" id="brand" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none">
-        <option value="xiaomi">Xiaomi / Redmi</option><option value="samsung">Samsung</option><option value="oppo">OPPO</option><option value="infinix">Infinix</option><option value="advan">Advan</option>
+      <select name="brand" id="brand" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 transition focus:border-emerald-500 focus:outline-none">
+        <option value="samsung">Samsung</option>
+        <option value="xiaomi">Xiaomi / Redmi</option>
+        <option value="oppo">OPPO</option>
+        <option value="realme">realme</option>
+        <option value="vivo">vivo</option>
+        <option value="advan">Advan</option>
+        <option value="tecno">TECNO</option>
+        <option value="infinix">Infinix</option>
       </select>
     </label>
+
+    <!-- Model -->
     <label class="mb-4 block">
       <span class="mb-1.5 block text-sm font-semibold text-slate-300">Model <span class="font-normal text-slate-600">(optional)</span></span>
-      <input name="model" placeholder="Random" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/>
+      <input name="model" id="model" placeholder="Random from brand" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 transition focus:border-emerald-500 focus:outline-none"/>
       <small id="hint" class="mt-1 block text-xs text-slate-600"></small>
     </label>
+
+    <!-- Android & Seed -->
     <div class="mb-4 grid grid-cols-2 gap-3">
-      <label class="block"><span class="mb-1.5 block text-sm font-semibold text-slate-300">Android</span><input name="android" placeholder="auto" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/></label>
-      <label class="block"><span class="mb-1.5 block text-sm font-semibold text-slate-300">Seed</span><input name="seed" type="number" min="0" max="999999999" placeholder="random" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/></label>
+      <label class="block">
+        <span class="mb-1.5 block text-sm font-semibold text-slate-300">Android</span>
+        <input name="android" placeholder="auto" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/>
+      </label>
+      <label class="block">
+        <span class="mb-1.5 block text-sm font-semibold text-slate-300">Seed</span>
+        <input name="seed" type="number" min="0" max="999999999" placeholder="random" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/>
+      </label>
     </div>
-    <div class="mb-6 grid grid-cols-2 gap-3">
-      <label class="block"><span class="mb-1.5 block text-sm font-semibold text-slate-300">Event Count</span><input name="count" type="number" min="1000" max="80000" placeholder="auto" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/></label>
-      <label class="block"><span class="mb-1.5 block text-sm font-semibold text-slate-300">Days</span><input name="days" type="number" min="1" max="14" step="0.1" placeholder="auto" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/></label>
+
+    <!-- Event Count & Days -->
+    <div class="mb-4 grid grid-cols-2 gap-3">
+      <label class="block">
+        <span class="mb-1.5 block text-sm font-semibold text-slate-300">Event Count</span>
+        <input name="count" type="number" min="1000" max="150000" placeholder="auto (10K-80K)" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/>
+      </label>
+      <label class="block">
+        <span class="mb-1.5 block text-sm font-semibold text-slate-300">Days</span>
+        <input name="days" type="number" min="1" max="30" step="0.5" placeholder="auto (7-14)" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none"/>
+      </label>
     </div>
-    <button id="btn" type="submit" class="w-full rounded-lg bg-emerald-500 py-3 text-lg font-black text-slate-950 transition hover:bg-emerald-400 disabled:opacity-50">🚀 Generate</button>
-    <p class="mt-3 text-center text-xs text-slate-600">Synthetic QA fixture • Not real user data</p>
+
+    <!-- Persona -->
+    <label class="mb-6 block">
+      <span class="mb-1.5 block text-sm font-semibold text-slate-300">User Persona</span>
+      <select name="persona" id="persona" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 focus:border-emerald-500 focus:outline-none">
+        <option value="">🎲 Random</option>
+        <option value="student">🎓 Student — social, games, messaging</option>
+        <option value="professional">💼 Professional — productivity, finance, news</option>
+        <option value="elderly">👴 Elderly — messaging, finance</option>
+        <option value="gamer">🎮 Gamer — games, social, streaming</option>
+        <option value="casual">😊 Casual — balanced mix</option>
+        <option value="influencer">📱 Influencer — social, camera, ecommerce</option>
+        <option value="trader">📈 Trader — crypto, finance, news</option>
+        <option value="homemaker">🏠 Homemaker — ecommerce, messaging, games</option>
+      </select>
+    </label>
+
+    <!-- Generate Button -->
+    <button id="btn" type="submit" class="w-full rounded-lg bg-emerald-500 py-3.5 text-lg font-black text-slate-950 transition hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+      🚀 Generate
+    </button>
+    <p class="mt-3 text-center text-xs text-slate-600">Synthetic QA fixture • Not real user data • 26 forensic markers</p>
   </form>
 
-  <!-- RESULT -->
+  <!-- RIGHT: RESULT -->
   <div class="glass rounded-2xl p-6">
     <div class="mb-5 flex items-center justify-between">
       <h2 class="text-lg font-bold">📦 Result</h2>
       <span id="st" class="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-500">Waiting</span>
     </div>
-    <div id="empty" class="flex min-h-[400px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-700/50 text-slate-600">
-      <div class="mb-3 text-4xl">📦</div>
-      <p class="font-semibold text-slate-500">Configure & click Generate</p>
+
+    <!-- Empty State -->
+    <div id="empty" class="flex min-h-[450px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-700/50 text-slate-600">
+      <div class="mb-4 text-5xl">📦</div>
+      <p class="text-base font-semibold text-slate-500">Configure & click Generate</p>
+      <p class="mt-2 text-sm text-slate-600">Pilih brand, persona, lalu klik Generate</p>
     </div>
+
+    <!-- Result State -->
     <div id="res" class="hidden">
-      <div class="mb-4 grid grid-cols-3 gap-3">
-        <div class="rounded-xl bg-slate-900/80 p-3"><p class="text-[11px] font-medium uppercase tracking-wide text-slate-500">Device</p><p id="d" class="mt-1 truncate text-sm font-bold"></p></div>
-        <div class="rounded-xl bg-slate-900/80 p-3"><p class="text-[11px] font-medium uppercase tracking-wide text-slate-500">Events</p><p id="ec" class="mt-1 text-sm font-bold"></p></div>
-        <div class="rounded-xl bg-slate-900/80 p-3"><p class="text-[11px] font-medium uppercase tracking-wide text-slate-500">Score</p><p id="sc" class="mt-1 text-sm font-bold text-emerald-400"></p></div>
+      <!-- Stats Cards -->
+      <div class="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div class="rounded-xl bg-slate-900/80 p-3">
+          <p class="text-[10px] font-medium uppercase tracking-wider text-slate-500">Device</p>
+          <p id="d" class="mt-1 truncate text-sm font-bold text-white"></p>
+        </div>
+        <div class="rounded-xl bg-slate-900/80 p-3">
+          <p class="text-[10px] font-medium uppercase tracking-wider text-slate-500">Events</p>
+          <p id="ec" class="mt-1 text-sm font-bold text-white"></p>
+        </div>
+        <div class="rounded-xl bg-slate-900/80 p-3">
+          <p class="text-[10px] font-medium uppercase tracking-wider text-slate-500">Packages</p>
+          <p id="pk" class="mt-1 text-sm font-bold text-white"></p>
+        </div>
+        <div class="rounded-xl bg-slate-900/80 p-3">
+          <p class="text-[10px] font-medium uppercase tracking-wider text-slate-500">Score</p>
+          <p id="sc" class="mt-1 text-sm font-bold text-emerald-400"></p>
+        </div>
       </div>
+
+      <!-- File Info -->
       <div class="mb-4 rounded-xl bg-slate-900/80 p-3 text-xs">
-        <p><span class="text-slate-500">Window:</span> <span id="w"></span></p>
-        <p class="mt-1 break-all"><span class="text-slate-500">SHA256:</span> <code id="sh" class="text-[10px] text-slate-400"></code></p>
-        <p class="mt-1"><span class="text-slate-500">Size:</span> <span id="sz"></span></p>
+        <div class="grid grid-cols-2 gap-2">
+          <p><span class="text-slate-500">Window:</span> <span id="w" class="text-slate-300"></span></p>
+          <p><span class="text-slate-500">Size:</span> <span id="sz" class="text-slate-300"></span></p>
+          <p class="col-span-2 break-all"><span class="text-slate-500">SHA256:</span> <code id="sh" class="text-[10px] text-slate-400"></code></p>
+        </div>
       </div>
-      <button id="dl" class="mb-5 w-full rounded-lg bg-emerald-500 py-3 text-base font-black text-slate-950 transition hover:bg-emerald-400">⬇️ Download sw_events.zip</button>
+
+      <!-- Download Button -->
+      <button id="dl" class="mb-5 w-full rounded-lg bg-emerald-500 py-3 text-base font-black text-slate-950 transition hover:bg-emerald-400 active:scale-[0.98]">
+        ⬇️ Download sw_events.zip
+      </button>
+
+      <!-- Charts -->
       <div class="grid gap-4 md:grid-cols-2">
-        <div class="rounded-xl bg-slate-900/80 p-3"><h3 class="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-500">Top Packages</h3><ol id="tp" class="space-y-1.5 text-xs"></ol></div>
-        <div class="rounded-xl bg-slate-900/80 p-3"><h3 class="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-500">Event Types</h3><ol id="et" class="space-y-1.5 text-xs"></ol></div>
+        <div class="rounded-xl bg-slate-900/80 p-4">
+          <h3 class="mb-3 text-xs font-bold uppercase tracking-wide text-emerald-500">📊 Top Packages</h3>
+          <ol id="tp" class="space-y-2 text-xs"></ol>
+        </div>
+        <div class="rounded-xl bg-slate-900/80 p-4">
+          <h3 class="mb-3 text-xs font-bold uppercase tracking-wide text-emerald-500">📋 Event Types</h3>
+          <ol id="et" class="space-y-2 text-xs"></ol>
+        </div>
       </div>
     </div>
   </div>
 
 </div>
+
+<!-- FOOTER -->
+<div class="mt-8 text-center text-xs text-slate-700">
+  <p>SW Events Generator v2.2 • 8 brands • Persona system • Forensic-grade synthetic data</p>
+  <p class="mt-1">Built for QA testing • Not real user data</p>
+</div>
+
 </div>
 
 <script>
-const $=id=>document.getElementById(id);
-let blob=null, profiles=null;
+const $ = id => document.getElementById(id);
+let blob = null, profiles = null;
 
-async function loadP(){
-  try{const r=await fetch("/api/profiles");profiles=await r.json();hint()}catch(e){}
-}
-function hint(){
-  const b=$("brand").value;if(!profiles)return;
-  const p=profiles[b];
-  $("hint").textContent="Models: "+p.models.slice(0,3).join(", ")+" • Range: "+p.event_count_range[0].toLocaleString()+"–"+p.event_count_range[1].toLocaleString();
-}
-function barrows(l){
-  if(!l||!l.length)return "";
-  const max=l[0][1];
-  return l.map(([n,c])=>'<li class="flex items-center gap-2"><span class="w-14 text-right tabular-nums text-slate-500">'+Number(c).toLocaleString()+'</span><div class="flex-1 bar"><div style="width:'+Math.min(Math.round(c/max*100),100)+'%"></div></div><span class="flex-1 truncate text-slate-400">'+n+"</span></li>").join("");
+// Load profiles
+async function loadProfiles() {
+  try {
+    const r = await fetch('/api/profiles');
+    if (!r.ok) throw new Error(r.statusText);
+    profiles = await r.json();
+    updateHint();
+  } catch (e) {
+    console.warn('Failed to load profiles:', e);
+  }
 }
 
-$("brand").addEventListener("change",hint);
+function updateHint() {
+  const b = $('brand').value;
+  if (!profiles || !profiles[b]) return;
+  const p = profiles[b];
+  const models = p.models ? p.models.slice(0, 4).join(', ') : 'N/A';
+  const range = p.event_count_range
+    ? p.event_count_range[0].toLocaleString() + '–' + p.event_count_range[1].toLocaleString()
+    : 'N/A';
+  $('hint').textContent = 'Models: ' + models + ' • Events: ' + range;
+}
 
-$("dl").addEventListener("click",()=>{
-  if(!blob)return;
-  const u=URL.createObjectURL(blob),a=document.createElement("a");
-  a.href=u;a.download="sw_events.zip";
-  document.body.appendChild(a);a.click();
-  setTimeout(()=>{URL.revokeObjectURL(u);a.remove()},200);
+function barrows(list) {
+  if (!list || !list.length) return '';
+  const max = list[0][1];
+  return list.map(([name, count]) => {
+    const pct = Math.min(Math.round(count / max * 100), 100);
+    return '<li class="flex items-center gap-2">' +
+      '<span class="w-16 text-right tabular-nums text-slate-500">' + Number(count).toLocaleString() + '</span>' +
+      '<div class="flex-1 bar"><div style="width:' + pct + '%"></div></div>' +
+      '<span class="flex-1 truncate text-slate-400">' + name + '</span></li>';
+  }).join('');
+}
+
+// Brand change
+$('brand').addEventListener('change', updateHint);
+
+// Download
+$('dl').addEventListener('click', () => {
+  if (!blob) return;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'sw_events.zip';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 200);
 });
 
-$("f").addEventListener("submit",async e=>{
+// Generate
+$('f').addEventListener('submit', async e => {
   e.preventDefault();
-  $("btn").disabled=true;$("btn").textContent="⏳ Generating...";
-  $("st").textContent="Working";$("st").className="rounded-full bg-amber-500/20 px-3 py-1 text-xs text-amber-400";
-  try{
-    const fd=new FormData(e.target);
-    const r=await fetch("/api/generate",{method:"POST",body:fd});
-    const d=await r.json();
-    if(!r.ok)throw new Error(d.detail||"Failed");
-    const s=d.summary;
-    $("empty").classList.add("hidden");$("res").classList.remove("hidden");
-    $("d").textContent=s.device_model+" / Android "+s.android_version;
-    $("ec").textContent=Number(s.event_count).toLocaleString();
-    $("sc").textContent=s.score+"/100";
-    $("w").textContent=s.window_start+" → "+s.window_end;
-    $("sh").textContent=s.sha256;
-    $("sz").textContent=(s.zip_size/1024).toFixed(1)+" KB";
-    $("tp").innerHTML=barrows(s.top_packages);
-    $("et").innerHTML=barrows(s.event_types);
-    const bin=atob(d.zip_base64),arr=new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
-    blob=new Blob([arr],{type:"application/zip"});
-    $("st").textContent="Ready";$("st").className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs text-emerald-400";
-  }catch(err){
-    alert("Error: "+err.message);
-    $("st").textContent="Error";$("st").className="rounded-full bg-red-500/20 px-3 py-1 text-xs text-red-400";
-  }finally{
-    $("btn").disabled=false;$("btn").textContent="🚀 Generate";
+  const btn = $('btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Generating...';
+  $('st').textContent = 'Working';
+  $('st').className = 'rounded-full bg-amber-500/20 px-3 py-1 text-xs text-amber-400 pulse';
+
+  try {
+    const fd = new FormData(e.target);
+    // Remove empty fields
+    for (const [k, v] of fd.entries()) {
+      if (!v || v === '') fd.delete(k);
+    }
+
+    const r = await fetch('/api/generate', { method: 'POST', body: fd });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ detail: r.statusText }));
+      throw new Error(err.detail || 'Generation failed');
+    }
+
+    const d = await r.json();
+    const s = d.summary;
+
+    // Show result
+    $('empty').classList.add('hidden');
+    $('res').classList.remove('hidden');
+
+    $('d').textContent = s.device_model + ' / Android ' + s.android_version;
+    $('ec').textContent = Number(s.event_count).toLocaleString();
+    $('pk').textContent = s.unique_packages ? Number(s.unique_packages).toLocaleString() : 'N/A';
+    $('sc').textContent = s.score + '/100';
+    $('w').textContent = s.window_start + ' → ' + s.window_end;
+    $('sh').textContent = s.sha256;
+    $('sz').textContent = (s.zip_size / 1024).toFixed(1) + ' KB';
+
+    $('tp').innerHTML = barrows(s.top_packages);
+    $('et').innerHTML = barrows(s.event_types);
+
+    // Decode base64 zip
+    const bin = atob(d.zip_base64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    blob = new Blob([arr], { type: 'application/zip' });
+
+    $('st').textContent = '✅ Ready';
+    $('st').className = 'rounded-full bg-emerald-500/20 px-3 py-1 text-xs text-emerald-400';
+  } catch (err) {
+    alert('Error: ' + err.message);
+    $('st').textContent = '❌ Error';
+    $('st').className = 'rounded-full bg-red-500/20 px-3 py-1 text-xs text-red-400';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 Generate';
   }
 });
 
-loadP();
+// Init
+loadProfiles();
 </script>
-</body></html>
+</body>
+</html>

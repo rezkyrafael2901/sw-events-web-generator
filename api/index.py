@@ -623,7 +623,7 @@ def _norm_apps(items):
     return [(p, c, w / s) for p, c, w in items]
 
 
-def _build_pool(brand, prof, rng):
+def _build_pool(brand, prof, rng, persona_name=None):
     """Build realistic package pool — each device has a unique user persona."""
     apps = _norm_apps(prof["apps"])
     brand_sys = prof.get("system", [])
@@ -641,8 +641,11 @@ def _build_pool(brand, prof, rng):
         "trader":      {"social": 0.4, "messaging": 0.65, "games": 0.15, "ecommerce": 0.4, "finance": 0.85, "productivity": 0.6, "news": 0.75, "crypto": 0.95, "travel": 0.2},
         "homemaker":   {"social": 0.6, "messaging": 0.85, "games": 0.5, "ecommerce": 0.9, "finance": 0.6, "productivity": 0.2, "news": 0.25, "crypto": 0.05, "travel": 0.2},
     }
-    persona_name = rng.choice(list(personas.keys()))
-    persona = personas[persona_name]
+    if persona_name and persona_name in personas:
+        persona = personas[persona_name]
+    else:
+        persona_name = rng.choice(list(personas.keys()))
+        persona = personas[persona_name]
 
     # App category mapping (package → category)
     _cat_map = {
@@ -711,7 +714,7 @@ def _build_pool(brand, prof, rng):
     return all_apps, sys_pick, bg_pick
 
 
-def _gen(brand, model, av, count, seed, days):
+def _gen(brand, model, av, count, seed, days, persona=None):
     rng = random.Random(seed)
     prof = BP[brand]
     model = model or rng.choice(prof["models"])
@@ -728,7 +731,7 @@ def _gen(brand, model, av, count, seed, days):
     start = end - dt.timedelta(days=days, minutes=rng.randint(0, 180), seconds=rng.randint(0, 59))
 
     # Build package pool
-    apps, sys_pkgs, bg_pkgs = _build_pool(brand, prof, rng)
+    apps, sys_pkgs, bg_pkgs = _build_pool(brand, prof, rng, persona)
     pkgs = [p for p, _, _ in apps]
     cls = {p: c for p, c, _ in apps}
     pw = [w for _, _, w in apps]
@@ -1152,8 +1155,17 @@ def _zip(rows, manifest):
 
 @app.get("/", response_class=HTMLResponse)
 def index():
+    try:
+        from _html import INDEX_HTML
+        return HTMLResponse(INDEX_HTML)
+    except ImportError:
+        pass
+    try:
+        from api._html import INDEX_HTML
+        return HTMLResponse(INDEX_HTML)
+    except ImportError:
+        pass
     import pathlib
-    # Try multiple paths for Vercel / local compatibility
     for p in [
         pathlib.Path(__file__).resolve().parent.parent / "index.html",
         pathlib.Path("/var/task/index.html"),
@@ -1177,7 +1189,8 @@ def profiles():
 @app.post("/api/generate")
 def generate(brand: str = Form("xiaomi"), model: Optional[str] = Form(None),
              android: Optional[str] = Form(None), count: Optional[str] = Form(None),
-             days: Optional[str] = Form(None), seed: Optional[str] = Form(None)):
+             days: Optional[str] = Form(None), seed: Optional[str] = Form(None),
+             persona: Optional[str] = Form(None)):
     brand = brand.lower().strip()
     if brand not in BP:
         raise HTTPException(400, "Unknown brand")
@@ -1201,7 +1214,8 @@ def generate(brand: str = Form("xiaomi"), model: Optional[str] = Form(None),
     try:
         rows, manifest = _gen(
             brand, (model or "").strip() or None, (android or "").strip() or None,
-            pi(count, 1000, 120000), pi(seed, 0, 999999999), pf(days, 1, 14)
+            pi(count, 1000, 120000), pi(seed, 0, 999999999), pf(days, 1, 14),
+            (persona or "").strip() or None
         )
     except Exception as e:
         raise HTTPException(500, str(e))
